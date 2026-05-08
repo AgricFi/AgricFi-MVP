@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farmer Portal — AgricFi</title>
+<link rel="icon" href="assets/logo.png" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css">
+<style>
+.page-wrapper{padding-top:64px;min-height:100vh;position:relative;z-index:1}
+#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+.app-layout{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100vh - 64px)}
+.sidebar{background:rgba(4,12,6,.9);border-right:1px solid var(--border);padding:1.5rem 0;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;backdrop-filter:blur(16px)}
+.sidebar-section{padding:0 1rem;margin-bottom:1.75rem}
+.sidebar-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;padding:0 .75rem;margin-bottom:.5rem}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:.65rem .75rem;border-radius:9px;font-size:.85rem;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;border:none;background:transparent;width:100%;text-align:left;text-decoration:none}
+.sidebar-link svg{width:17px;height:17px;flex-shrink:0;opacity:.7}
+.sidebar-link:hover{background:rgba(240,192,64,.07);color:var(--text)}
+.sidebar-link.active{background:rgba(240,192,64,.1);color:var(--gold);border:1px solid rgba(240,192,64,.18)}
+.sidebar-link.active svg{opacity:1}
+.sidebar-divider{height:1px;background:var(--border);margin:1rem 1rem}
+.sidebar-wallet{padding:1rem;background:rgba(240,192,64,.05);border:1px solid rgba(240,192,64,.12);border-radius:10px;margin:0 1rem}
+.sw-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+.sw-addr{font-family:'Courier New',monospace;font-size:.72rem;color:var(--gold);margin-bottom:.5rem;word-break:break-all}
+.sw-actions{display:flex;gap:.5rem}
+.sw-btn{font-size:.68rem;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.sw-btn:hover{border-color:var(--gold);color:var(--gold)}
+.sw-btn.red:hover{border-color:#ff4d6d;color:#ff4d6d}
+.main-content{padding:2rem;background:var(--bg-mid);min-height:calc(100vh - 64px);position:relative;z-index:1}
+.panel{display:none}
+.panel.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:2rem}
+.ph-left h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.6rem;font-weight:900;letter-spacing:-.03em;margin-bottom:.2rem}
+.ph-left p{font-size:.85rem;color:var(--muted);font-weight:300}
+/* Connect gate */
+.connect-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:3rem}
+.cg-icon{width:72px;height:72px;border-radius:18px;background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.18);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
+.cg-icon svg{width:34px;height:34px;color:var(--gold)}
+.connect-gate h2{font-family:'Cabinet Grotesk',sans-serif;font-size:1.4rem;font-weight:900;margin-bottom:.6rem}
+.connect-gate p{font-size:.9rem;color:var(--muted);max-width:380px;margin:0 auto 2rem;line-height:1.7;font-weight:300}
+/* Stats */
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}
+/* Farm listing card */
+.farmer-farm-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .2s;margin-bottom:1rem}
+.farmer-farm-card:hover{border-color:var(--border-h)}
+.ffc-header{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border-bottom:1px solid var(--border)}
+.ffc-name{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem}
+.ffc-body{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;padding:1.1rem 1.4rem}
+.ffc-stat{font-size:.78rem}
+.ffc-stat .v{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:1rem;margin-bottom:2px}
+.ffc-stat .v.g{color:var(--green)}
+.ffc-stat .v.a{color:var(--gold)}
+.ffc-stat .l{color:var(--muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.07em}
+.ffc-progress{padding:0 1.4rem 1.1rem}
+/* Payout table row */
+.payout-row{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;border:1px solid var(--border);border-radius:12px;margin-bottom:.6rem;gap:1rem;flex-wrap:wrap;font-size:.83rem;transition:border-color .2s;background:rgba(8,22,12,.5)}
+.payout-row:hover{border-color:var(--border-h)}
+/* KYC stepper */
+.kyc-stepper{display:flex;align-items:center;justify-content:center;margin-bottom:2.5rem;flex-wrap:wrap;gap:0}
+.kyc-step-item{display:flex;align-items:center}
+.kyc-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.9rem;border:2px solid var(--border);color:var(--muted);background:var(--bg);transition:all .3s;flex-shrink:0;position:relative;z-index:1}
+.kyc-circle.active{border-color:var(--gold);color:var(--gold);box-shadow:0 0 20px rgba(240,192,64,.2)}
+.kyc-circle.done{border-color:var(--green);background:var(--green);color:#000}
+.kyc-line{width:60px;height:1px;background:var(--border);flex-shrink:0}
+.kyc-line.done{background:var(--green)}
+.kyc-step-name{font-size:.68rem;color:var(--muted);text-align:center;margin-top:4px;white-space:nowrap}
+/* KYC Form panels */
+.kyc-panel{display:none}
+.kyc-panel.active{display:block;animation:fadeIn .3s ease}
+.kyc-section-title{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:1rem;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+/* File upload */
+.file-drop{border:1.5px dashed var(--border);border-radius:12px;padding:2rem;text-align:center;transition:all .2s;cursor:pointer}
+.file-drop:hover,.file-drop.drag{border-color:var(--gold);background:rgba(240,192,64,.03)}
+.file-drop svg{width:36px;height:36px;color:var(--muted);margin:0 auto .75rem;display:block;opacity:.5}
+.file-drop p{font-size:.85rem;color:var(--muted)}
+.file-drop span{font-size:.72rem;color:var(--dim)}
+.file-list{margin-top:.75rem;display:flex;flex-direction:column;gap:.4rem}
+.file-item{display:flex;align-items:center;gap:8px;padding:.5rem .75rem;background:rgba(240,192,64,.05);border:1px solid rgba(240,192,64,.12);border-radius:8px;font-size:.78rem}
+.file-item svg{width:14px;height:14px;color:var(--gold);flex-shrink:0}
+/* Review card */
+.review-section{margin-bottom:1.25rem}
+.review-section h4{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:700;margin-bottom:.6rem}
+.review-row{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(0,255,135,.04);font-size:.83rem}
+.review-row:last-child{border-bottom:none}
+.review-row .rv{font-weight:600}
+/* Chart card */
+.chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
+.cc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.cc-title{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem}
+.cc-chart{height:200px;position:relative}
+/* Responsive */
+@media(max-width:960px){
+  .app-layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .sidebar.mobile-open{display:block;position:fixed;left:0;top:64px;bottom:0;width:260px;z-index:150;height:auto}
+  .stats4{grid-template-columns:1fr 1fr}
+  .ffc-body{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .stats4,.stats3{grid-template-columns:1fr}
+  .main-content{padding:1.25rem}
+  .kyc-line{width:30px}
+}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-left" style="display:flex;align-items:center;gap:10px">
+    <img src="assets/logo.png" alt="AgricFi" class="nav-logo" onerror="this.style.display='none'">
+    <span class="nav-brand">AgricFi</span>
+    <span class="nav-mode-badge farmer">Farmer</span>
+  </div>
+  <div class="nav-center" id="navCenter">
+    <a onclick="showPanel('overview')"  class="nav-link active" id="nl-overview">Overview</a>
+    <a onclick="showPanel('myfarms')"   class="nav-link" id="nl-myfarms">My Farms</a>
+    <a onclick="showPanel('listfarm')"  class="nav-link" id="nl-listfarm">List a Farm</a>
+    <a onclick="showPanel('payouts')"   class="nav-link" id="nl-payouts">Payouts</a>
+  </div>
+  <div class="nav-right">
+    <div class="btn-copy-addr" id="addrChip" style="display:none" onclick="copyAddr()" title="Copy address">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span id="addrText"></span>
+    </div>
+    <button class="btn-wallet" id="btnWallet" onclick="openWalletModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
+      Connect Wallet
+    </button>
+    <button class="nav-switch" onclick="window.location.href='investor.html'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+      Investor Portal
+    </button>
+    <div class="hamburger" id="hamburger" onclick="toggleSidebar()">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<div class="app-layout">
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Farmer Menu</div>
+    <button class="sidebar-link active" id="sl-overview"  onclick="showPanel('overview')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Overview
+    </button>
+    <button class="sidebar-link" id="sl-myfarms"  onclick="showPanel('myfarms')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      My Farms
+    </button>
+    <button class="sidebar-link" id="sl-listfarm" onclick="showPanel('listfarm')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      List a Farm
+    </button>
+    <button class="sidebar-link" id="sl-payouts"  onclick="showPanel('payouts')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Payouts
+    </button>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Account</div>
+    <div class="sidebar-wallet" id="sidebarWallet" style="display:none">
+      <div class="sw-label">Connected Wallet</div>
+      <div class="sw-addr" id="swAddr">—</div>
+      <div class="sw-actions">
+        <button class="sw-btn" onclick="copyAddr()">Copy</button>
+        <button class="sw-btn red" onclick="disconnectWallet()">Disconnect</button>
+      </div>
+    </div>
+    <button class="sidebar-link" id="sidebarConnectBtn" onclick="openWalletModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
+      Connect Wallet
+    </button>
+    <a href="index.html" class="sidebar-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Back to Home
+    </a>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- ── OVERVIEW PANEL ── -->
+  <div class="panel active" id="panel-overview">
+
+    <!-- Gate -->
+    <div id="gate-overview" class="connect-gate">
+      <div class="cg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <h2>Connect Your Wallet</h2>
+      <p>Connect your Solana wallet to access the Farmer Portal, manage your farm listings, and track investor payouts.</p>
+      <button class="btn-gold" onclick="openWalletModal()">Connect Wallet</button>
+    </div>
+
+    <!-- Connected Overview -->
+    <div id="overview-content" style="display:none">
+      <div class="ph">
+        <div class="ph-left">
+          <h1>Farmer Overview</h1>
+          <p>Welcome back, <span id="farmerWelcome" style="color:var(--gold)">Farmer</span></p>
+        </div>
+        <button class="btn-gold" onclick="showPanel('listfarm')">+ List New Farm</button>
+      </div>
+
+      <div class="banner success" style="margin-bottom:1.5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span><strong>Devnet Mode Active.</strong> All transactions use Solana devnet. Get test SOL from <a href="https://discord.gg/DG9QVxb8TU" target="_blank" style="color:inherit;text-decoration:underline;font-weight:700">Discord #get-test-sol</a>.</span>
+      </div>
+
+      <div class="stats4">
+        <div class="stat-card" style="border-color:rgba(240,192,64,.15)"><div class="stat-label">Total Raised</div><div class="stat-value gold" data-count="94000" data-prefix="$">$0</div><div class="stat-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>2 active farms</div></div>
+        <div class="stat-card"><div class="stat-label">Active Investors</div><div class="stat-value" data-count="34">0</div><div class="stat-change up">across 2 farms</div></div>
+        <div class="stat-card"><div class="stat-label">Upcoming Payout</div><div class="stat-value green" data-count="6800" data-prefix="$">$0</div><div class="stat-change up">due this month</div></div>
+        <div class="stat-card"><div class="stat-label">$AFT Earned</div><div class="stat-value gold" data-count="4850">0</div><div class="stat-change up">platform rewards</div></div>
+      </div>
+
+      <!-- Charts -->
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.25rem;margin-bottom:1.5rem">
+        <div class="chart-card">
+          <div class="cc-header"><span class="cc-title">Fundraising Progress</span></div>
+          <div class="cc-chart"><canvas id="raiseChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="cc-header"><span class="cc-title">Investor Distribution</span></div>
+          <div class="cc-chart" style="display:flex;align-items:center;justify-content:center"><canvas id="invDistChart" style="max-width:160px"></canvas></div>
+        </div>
+      </div>
+
+      <!-- My farms quick view -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">My Listed Farms</span><button class="btn-sm gold" onclick="showPanel('myfarms')">View All</button></div>
+        <div style="padding:1rem 1.25rem" id="overviewFarms"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MY FARMS PANEL ── -->
+  <div class="panel" id="panel-myfarms">
+    <div class="ph">
+      <div class="ph-left"><h1>My Listed Farms</h1><p>Manage your tokenized farms and monitor investment progress</p></div>
+      <button class="btn-gold" onclick="showPanel('listfarm')">+ List New Farm</button>
+    </div>
+
+    <div id="gate-myfarms" class="connect-gate" style="display:none">
+      <div class="cg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <h2>Connect Wallet to View Your Farms</h2>
+      <p>Your listed farms appear here after connecting your wallet.</p>
+      <button class="btn-gold" onclick="openWalletModal()">Connect Wallet</button>
+    </div>
+
+    <div id="myfarms-content">
+      <div id="myFarmsGrid"></div>
+    </div>
+  </div>
+
+  <!-- ── LIST A FARM PANEL ── -->
+  <div class="panel" id="panel-listfarm">
+    <div class="ph">
+      <div class="ph-left"><h1>List a Farm</h1><p>Complete the 4-step KYC process to tokenize your farm on Solana</p></div>
+    </div>
+
+    <!-- Stepper -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:2rem;margin-bottom:2rem">
+      <div class="kyc-stepper" id="kycStepper">
+        <div class="kyc-step-item">
+          <div style="text-align:center">
+            <div class="kyc-circle active" id="kc1">1</div>
+            <div class="kyc-step-name">Farm Info</div>
+          </div>
+        </div>
+        <div class="kyc-line" id="kl1"></div>
+        <div class="kyc-step-item">
+          <div style="text-align:center">
+            <div class="kyc-circle" id="kc2">2</div>
+            <div class="kyc-step-name">Documents</div>
+          </div>
+        </div>
+        <div class="kyc-line" id="kl2"></div>
+        <div class="kyc-step-item">
+          <div style="text-align:center">
+            <div class="kyc-circle" id="kc3">3</div>
+            <div class="kyc-step-name">Financials</div>
+          </div>
+        </div>
+        <div class="kyc-line" id="kl3"></div>
+        <div class="kyc-step-item">
+          <div style="text-align:center">
+            <div class="kyc-circle" id="kc4">4</div>
+            <div class="kyc-step-name">Review</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: Farm Information -->
+      <div class="kyc-panel active" id="kyc-step1">
+        <div class="kyc-section-title">Step 1 — Farm Information</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label required">Farm Name</label><input class="form-input" id="f_name" placeholder="e.g. Green Valley Maize Farm"></div>
+          <div class="form-group"><label class="form-label required">State / Region</label>
+            <select class="form-select" id="f_state">
+              <option value="">Select State</option>
+              <option>Ogun State</option><option>Kebbi State</option><option>Benue State</option>
+              <option>Kano State</option><option>Delta State</option><option>Ondo State</option>
+              <option>Sokoto State</option><option>Anambra State</option><option>Lagos State</option>
+              <option>Rivers State</option><option>Kaduna State</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label required">Crop Type</label>
+            <select class="form-select" id="f_crop">
+              <option value="">Select Crop</option>
+              <option>Maize</option><option>Rice</option><option>Cassava</option><option>Soybean</option>
+              <option>Yam</option><option>Tomato</option><option>Groundnut</option><option>Wheat</option>
+              <option>Sorghum</option><option>Cotton</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label required">Farm Size (Hectares)</label><input class="form-input" id="f_size" type="number" placeholder="e.g. 50" min="1"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label required">GPS Coordinates</label><input class="form-input" id="f_coords" placeholder="e.g. 6.8672° N, 3.4432° E"></div>
+          <div class="form-group"><label class="form-label required">Expected Harvest Date</label><input class="form-input" id="f_harvest" type="month"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Farm Description</label><textarea class="form-textarea" id="f_desc" placeholder="Describe your farm — soil quality, water access, infrastructure, experience..."></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Does the farm have IoT sensors?</label>
+            <select class="form-select" id="f_iot"><option value="">Select</option><option value="yes">Yes — fully equipped</option><option value="partial">Partial — some sensors</option><option value="no">No — manual monitoring</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">Years Farming This Land</label><input class="form-input" id="f_years" type="number" placeholder="e.g. 5" min="0"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:.5rem">
+          <button class="btn-gold" onclick="kycNext(1)">Continue to Documents →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Documents -->
+      <div class="kyc-panel" id="kyc-step2">
+        <div class="kyc-section-title">Step 2 — Upload Documents</div>
+        <div class="banner warning" style="margin-bottom:1.5rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span><strong>Required documents</strong> are reviewed by AgricFi's on-ground verification team within 3–5 business days before listing.</span>
+        </div>
+        <div class="form-grid-3" style="margin-bottom:1.25rem">
+          <div class="form-group">
+            <label class="form-label required">Land Ownership / Lease Document</label>
+            <div class="file-drop" onclick="triggerFile('doc_land')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_land')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <p>Click or drag file here</p><span>PDF, JPG, PNG — max 10MB</span>
+            </div>
+            <input type="file" id="doc_land" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="fileSelected(this,'land')">
+            <div id="file_land" class="file-list"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">Government Issued ID (Farmer)</label>
+            <div class="file-drop" onclick="triggerFile('doc_id')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_id')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              <p>Click or drag file here</p><span>PDF, JPG, PNG — max 10MB</span>
+            </div>
+            <input type="file" id="doc_id" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="fileSelected(this,'id')">
+            <div id="file_id" class="file-list"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">Farm Photos (min. 3)</label>
+            <div class="file-drop" onclick="triggerFile('doc_photos')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_photos')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <p>Click or drag files here</p><span>JPG, PNG — max 5MB each</span>
+            </div>
+            <input type="file" id="doc_photos" style="display:none" accept=".jpg,.jpeg,.png" multiple onchange="fileSelected(this,'photos')">
+            <div id="file_photos" class="file-list"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Soil Test Report (optional)</label>
+            <div class="file-drop" onclick="triggerFile('doc_soil')" style="padding:1.25rem" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_soil')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;margin:0 auto .5rem"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <p>Soil test PDF</p>
+            </div>
+            <input type="file" id="doc_soil" style="display:none" accept=".pdf" onchange="fileSelected(this,'soil')">
+            <div id="file_soil" class="file-list"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Satellite / Aerial Map (optional)</label>
+            <div class="file-drop" onclick="triggerFile('doc_map')" style="padding:1.25rem" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_map')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;margin:0 auto .5rem"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              <p>Map image or PDF</p>
+            </div>
+            <input type="file" id="doc_map" style="display:none" accept=".pdf,.jpg,.png" onchange="fileSelected(this,'map')">
+            <div id="file_map" class="file-list"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:.5rem">
+          <button class="btn-secondary" onclick="kycBack(2)">← Back</button>
+          <button class="btn-gold" onclick="kycNext(2)">Continue to Financials →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Financials -->
+      <div class="kyc-panel" id="kyc-step3">
+        <div class="kyc-section-title">Step 3 — Financial Details</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label required">Funding Target (USD)</label><input class="form-input" id="f_target" type="number" placeholder="e.g. 40000" min="5000"></div>
+          <div class="form-group"><label class="form-label required">Expected ROI for Investors (%)</label><input class="form-input" id="f_roi" type="number" placeholder="e.g. 20" min="5" max="60"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label required">Investment Duration</label>
+            <select class="form-select" id="f_duration">
+              <option value="">Select Duration</option>
+              <option>6 months</option><option>12 months</option>
+              <option>18 months</option><option>24 months</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label required">Minimum Investment (USD)</label><input class="form-input" id="f_minInv" type="number" placeholder="e.g. 100" min="10"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Estimated Annual Yield (tons)</label><input class="form-input" id="f_yield" type="number" placeholder="e.g. 250"></div>
+          <div class="form-group"><label class="form-label">Market Price per Ton (USD)</label><input class="form-input" id="f_price" type="number" placeholder="e.g. 420"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Offtake Agreement (if any)</label><textarea class="form-textarea" id="f_offtake" placeholder="Describe any existing agreements with buyers, processors, or export partners..." style="min-height:80px"></textarea></div>
+        <div class="form-group"><label class="form-label required">Farmer Wallet Address (Solana)</label>
+          <input class="form-input" id="f_wallet" placeholder="Your Solana wallet address for payouts" readonly>
+          <div class="form-hint">Auto-filled from connected wallet. Payouts will be sent here.</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:.5rem">
+          <button class="btn-secondary" onclick="kycBack(3)">← Back</button>
+          <button class="btn-gold" onclick="kycNext(3)">Review & Submit →</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Review & Submit -->
+      <div class="kyc-panel" id="kyc-step4">
+        <div class="kyc-section-title">Step 4 — Review & Submit</div>
+        <div class="banner info" style="margin-bottom:1.5rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span>Review all details carefully. After submission, AgricFi's verification team will contact you within <strong>3–5 business days</strong> for on-site inspection.</span>
+        </div>
+        <div id="reviewContent">
+          <div class="review-section">
+            <h4>Farm Information</h4>
+            <div id="reviewFarmInfo"></div>
+          </div>
+          <div class="review-section">
+            <h4>Financial Details</h4>
+            <div id="reviewFinancials"></div>
+          </div>
+          <div class="review-section">
+            <h4>Documents Uploaded</h4>
+            <div id="reviewDocs"></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:1.5rem">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--muted);line-height:1.55">
+            <input type="checkbox" id="agreeTerms" style="margin-top:3px;accent-color:var(--gold)">
+            I confirm that all information provided is accurate and I agree to AgricFi's <a href="https://agricfi.xyz" target="_blank" style="color:var(--gold);text-decoration:underline">Terms of Service</a> and on-site verification process.
+          </label>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:1rem">
+          <button class="btn-secondary" onclick="kycBack(4)">← Back</button>
+          <button class="btn-gold" id="btnSubmitFarm" onclick="submitFarm()">Submit Farm Application</button>
+        </div>
+      </div>
+
+      <!-- SUCCESS STATE -->
+      <div class="kyc-panel" id="kyc-success" style="text-align:center;padding:2rem">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(0,255,135,.12);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#00ff87" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 style="font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:1.4rem;margin-bottom:.6rem">Application Submitted!</h2>
+        <p style="font-size:.9rem;color:var(--muted);max-width:400px;margin:0 auto 1.75rem;line-height:1.7">Your farm listing application has been received. Our team will review your documents and schedule an on-site inspection within <strong style="color:var(--green)">3–5 business days</strong>.</p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <button class="btn-gold" onclick="resetKyc()">List Another Farm</button>
+          <button class="btn-secondary" onclick="showPanel('myfarms')">View My Farms</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAYOUTS PANEL ── -->
+  <div class="panel" id="panel-payouts">
+    <div class="ph">
+      <div class="ph-left"><h1>Investor Payouts</h1><p>Manage harvest revenue distribution to your investors</p></div>
+    </div>
+
+    <div id="gate-payouts" class="connect-gate" style="display:none">
+      <div class="cg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <h2>Connect Wallet to View Payouts</h2>
+      <p>Your payout schedule appears after connecting your wallet.</p>
+      <button class="btn-gold" onclick="openWalletModal()">Connect Wallet</button>
+    </div>
+
+    <div id="payouts-content">
+      <div class="stats3">
+        <div class="stat-card" style="border-color:rgba(240,192,64,.15)"><div class="stat-label">Total Distributed</div><div class="stat-value gold">$6,900</div><div class="stat-change up">all time</div></div>
+        <div class="stat-card"><div class="stat-label">Upcoming Payout</div><div class="stat-value green">$6,800</div><div class="stat-change up">due this cycle</div></div>
+        <div class="stat-card"><div class="stat-label">Investors to Pay</div><div class="stat-value">34</div><div class="stat-change up">across 2 farms</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Payout Schedule</span><span class="badge gold">Smart Contract Automated</span></div>
+        <div style="padding:.75rem 1.25rem" id="payoutsGrid"></div>
+      </div>
+
+      <div class="banner info" style="margin-top:1.5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>Payouts are automated via <strong>smart contracts</strong> on Solana. Once harvest revenue is deposited, the contract distributes proportional returns to all investors automatically — no manual action required.</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main-content -->
+</div><!-- end app-layout -->
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay" id="walletModal" onclick="if(event.target===this)closeWalletModal()">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Connect Wallet</span><button class="modal-close" onclick="closeWalletModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.1rem;font-weight:300">Connect your Solana wallet to access the Farmer Portal.</p>
+      <div id="walletOpts"></div>
+      <p style="font-size:.68rem;color:var(--muted);margin-top:1rem;text-align:center">Solana Devnet · MVP Testing Mode</p>
+    </div>
+  </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="data.js"></script>
+<script>
+// ── WALLET STATE
+const WALLET_KEY='agricfi_wallet_v1';
+let _ws={connected:false,address:null,name:null,provider:null};
+
+// ── PANELS
+const PANELS=['overview','myfarms','listfarm','payouts'];
+function showPanel(id){
+  PANELS.forEach(p=>{
+    document.getElementById('panel-'+p)?.classList.remove('active');
+    document.getElementById('sl-'+p)?.classList.remove('active');
+    document.getElementById('nl-'+p)?.classList.remove('active');
+  });
+  document.getElementById('panel-'+id)?.classList.add('active');
+  document.getElementById('sl-'+id)?.classList.add('active');
+  document.getElementById('nl-'+id)?.classList.add('active');
+  // Gate logic
+  const gated=['overview','myfarms','payouts'];
+  gated.forEach(g=>{
+    const gate=document.getElementById('gate-'+g);
+    const content=document.getElementById(g+'-content');
+    if(gate)gate.style.display=(_ws.connected?'none':'flex');
+    if(content)content.style.display=(_ws.connected?'block':'none');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── RENDER MY FARMS
+function renderMyFarms(containerId){
+  const farms=FARMER_PORTFOLIO.farms.map(id=>getFarm(id)).filter(Boolean);
+  const html=farms.map(f=>{
+    const fp=pct(f.raised,f.target);
+    const sc={live:'live',filling:'filling',soon:'soon'};
+    const sl={live:'Live',filling:'Filling',soon:'Coming Soon'};
+    return`<div class="farmer-farm-card">
+      <div class="ffc-header">
+        <div>
+          <div class="ffc-name">${f.name} — ${f.location}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">NFT ${f.nftId} · Serial: ${f.serial}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <span class="farm-status-badge ${sc[f.status]}">${f.status!=='soon'?'<span class="status-dot"></span>':''}${sl[f.status]}</span>
+          <button class="btn-sm outline" onclick="showToast('info','Farm Details','Full farm analytics coming in v2')">Manage</button>
+        </div>
+      </div>
+      <div class="ffc-body">
+        <div class="ffc-stat"><div class="v a">$${f.raised.toLocaleString()}</div><div class="l">Raised</div></div>
+        <div class="ffc-stat"><div class="v">${f.investors}</div><div class="l">Investors</div></div>
+        <div class="ffc-stat"><div class="v g">${f.roi.min}–${f.roi.max}%</div><div class="l">ROI Target</div></div>
+        <div class="ffc-stat"><div class="v">${f.cycle}</div><div class="l">Harvest</div></div>
+      </div>
+      <div class="ffc-progress">
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:.35rem;font-family:'Cabinet Grotesk',sans-serif;font-weight:700"><span style="color:var(--green)">${fp}% Funded</span><span>$${f.raised.toLocaleString()} / $${f.target.toLocaleString()}</span></div>
+        <div class="progress-bar"><div class="progress-bar-fill" style="width:${fp}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+  const el=document.getElementById(containerId);
+  if(el)el.innerHTML=html||'<p style="color:var(--muted);text-align:center;padding:2rem">No farms listed yet. <button class="btn-sm gold" onclick="showPanel(\'listfarm\')">List your first farm</button></p>';
+}
+
+// ── RENDER PAYOUTS
+function renderPayouts(){
+  document.getElementById('payoutsGrid').innerHTML=FARMER_PORTFOLIO.payouts.map(p=>`
+    <div class="payout-row">
+      <div>
+        <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:.88rem">${p.farm}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${p.investors} investors · Due: ${p.due}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap">
+        <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:1rem;color:${p.status==='paid'?'var(--muted)':'var(--green)'}">$${p.amount.toLocaleString()}</div>
+        <span class="badge ${p.status==='paid'?'muted':'green'}">${p.status==='paid'?'Paid':'Upcoming'}</span>
+        ${p.status!=='paid'?`<button class="btn-sm gold" onclick="triggerPayout('${p.farm}',${p.amount})">Release Payout</button>`:'<span style="font-size:.72rem;color:var(--muted)">Completed</span>'}
+      </div>
+    </div>`).join('');
+}
+
+function triggerPayout(farm,amount){
+  showToast('info','Processing...','Initiating smart contract payout for '+farm);
+  setTimeout(()=>showToast('success','Payout Released!','$'+amount.toLocaleString()+' distributed to all investors via Solana devnet'),2200);
+}
+
+// ── KYC STEPPER
+let _kycStep=1;
+const _kycData={};
+const _files={};
+
+function kycNext(step){
+  if(!validateStep(step))return;
+  if(step===3)buildReview();
+  _kycStep=step+1;
+  updateStepper();
+  document.querySelectorAll('.kyc-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('kyc-step'+_kycStep)?.classList.add('active');
+}
+function kycBack(step){
+  _kycStep=step-1;
+  updateStepper();
+  document.querySelectorAll('.kyc-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('kyc-step'+_kycStep)?.classList.add('active');
+}
+
+function validateStep(step){
+  if(step===1){
+    const name=document.getElementById('f_name')?.value?.trim();
+    const state=document.getElementById('f_state')?.value;
+    const crop=document.getElementById('f_crop')?.value;
+    const size=document.getElementById('f_size')?.value;
+    const coords=document.getElementById('f_coords')?.value?.trim();
+    const harvest=document.getElementById('f_harvest')?.value;
+    if(!name||!state||!crop||!size||!coords||!harvest){showToast('error','Missing Fields','Please fill all required fields');return false;}
+    _kycData.name=name;_kycData.state=state;_kycData.crop=crop;_kycData.size=size;_kycData.coords=coords;_kycData.harvest=harvest;
+    _kycData.iot=document.getElementById('f_iot')?.value||'No';
+    _kycData.years=document.getElementById('f_years')?.value||'—';
+    _kycData.desc=document.getElementById('f_desc')?.value||'—';
+  }
+  if(step===2){
+    if(!_files.land||!_files.id){showToast('error','Missing Documents','Land document and ID are required');return false;}
+    if(!_files.photos){showToast('error','Missing Photos','At least one farm photo is required');return false;}
+  }
+  if(step===3){
+    const target=document.getElementById('f_target')?.value;
+    const roi=document.getElementById('f_roi')?.value;
+    const dur=document.getElementById('f_duration')?.value;
+    const minInv=document.getElementById('f_minInv')?.value;
+    if(!target||!roi||!dur||!minInv){showToast('error','Missing Fields','Please fill all required financial fields');return false;}
+    _kycData.target=target;_kycData.roi=roi;_kycData.duration=dur;_kycData.minInv=minInv;
+    _kycData.yield=document.getElementById('f_yield')?.value||'—';
+    _kycData.price=document.getElementById('f_price')?.value||'—';
+    _kycData.offtake=document.getElementById('f_offtake')?.value||'None';
+    _kycData.wallet=_ws.address||'Not connected';
+  }
+  if(step===4){
+    if(!document.getElementById('agreeTerms')?.checked){showToast('error','Agreement Required','Please accept the terms to continue');return false;}
+  }
+  return true;
+}
+
+function updateStepper(){
+  for(let i=1;i<=4;i++){
+    const c=document.getElementById('kc'+i);
+    const l=document.getElementById('kl'+i);
+    if(!c)continue;
+    c.className='kyc-circle';
+    if(i<_kycStep){c.classList.add('done');c.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';if(l)l.className='kyc-line done';}
+    else if(i===_kycStep){c.classList.add('active');c.innerHTML=i;if(l)l.className='kyc-line';}
+    else{c.innerHTML=i;if(l)l.className='kyc-line';}
+  }
+}
+
+function buildReview(){
+  document.getElementById('reviewFarmInfo').innerHTML=`
+    <div class="review-row"><span>Farm Name</span><span class="rv">${_kycData.name||'—'}</span></div>
+    <div class="review-row"><span>State</span><span class="rv">${_kycData.state||'—'}</span></div>
+    <div class="review-row"><span>Crop</span><span class="rv">${_kycData.crop||'—'}</span></div>
+    <div class="review-row"><span>Size</span><span class="rv">${_kycData.size||'—'} Hectares</span></div>
+    <div class="review-row"><span>GPS Coordinates</span><span class="rv">${_kycData.coords||'—'}</span></div>
+    <div class="review-row"><span>Expected Harvest</span><span class="rv">${_kycData.harvest||'—'}</span></div>
+    <div class="review-row"><span>IoT Sensors</span><span class="rv">${_kycData.iot||'—'}</span></div>`;
+  document.getElementById('reviewFinancials').innerHTML=`
+    <div class="review-row"><span>Funding Target</span><span class="rv" style="color:var(--gold)">$${parseInt(_kycData.target||0).toLocaleString()}</span></div>
+    <div class="review-row"><span>Investor ROI</span><span class="rv" style="color:var(--green)">${_kycData.roi||'—'}%</span></div>
+    <div class="review-row"><span>Duration</span><span class="rv">${_kycData.duration||'—'}</span></div>
+    <div class="review-row"><span>Min. Investment</span><span class="rv">$${parseInt(_kycData.minInv||0).toLocaleString()}</span></div>
+    <div class="review-row"><span>Payout Wallet</span><span class="rv" style="font-family:'Courier New',monospace;font-size:.78rem">${_kycData.wallet||'—'}</span></div>`;
+  const docList=[
+    {k:'land',l:'Land Document'},
+    {k:'id',l:'Government ID'},
+    {k:'photos',l:'Farm Photos'},
+    {k:'soil',l:'Soil Report'},
+    {k:'map',l:'Satellite Map'},
+  ];
+  document.getElementById('reviewDocs').innerHTML=docList.map(d=>`
+    <div class="review-row"><span>${d.l}</span><span class="rv">${_files[d.k]?'<span style="color:var(--green)">✓ Uploaded</span>':'<span style="color:var(--muted)">Not uploaded</span>'}</span></div>`).join('');
+}
+
+async function submitFarm(){
+  if(!validateStep(4))return;
+  const btn=document.getElementById('btnSubmitFarm');
+  btn.disabled=true;btn.textContent='Submitting...';
+  await new Promise(r=>setTimeout(r,2200));
+  document.querySelectorAll('.kyc-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('kyc-success')?.classList.add('active');
+  // Mark all steps done
+  for(let i=1;i<=4;i++){const c=document.getElementById('kc'+i);if(c){c.className='kyc-circle done';c.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';}}
+  for(let i=1;i<=3;i++){const l=document.getElementById('kl'+i);if(l)l.className='kyc-line done';}
+  showToast('success','Application Submitted!','Our team will contact you within 3–5 business days');
+  btn.disabled=false;btn.textContent='Submit Farm Application';
+}
+
+function resetKyc(){
+  _kycStep=1;Object.keys(_kycData).forEach(k=>delete _kycData[k]);Object.keys(_files).forEach(k=>delete _files[k]);
+  ['f_name','f_state','f_crop','f_size','f_coords','f_harvest','f_iot','f_years','f_desc','f_target','f_roi','f_duration','f_minInv','f_yield','f_price','f_offtake'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['land','id','photos','soil','map'].forEach(k=>{const el=document.getElementById('file_'+k);if(el)el.innerHTML='';});
+  updateStepper();
+  document.querySelectorAll('.kyc-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('kyc-step1')?.classList.add('active');
+  document.getElementById('agreeTerms').checked=false;
+}
+
+// ── FILE HANDLING
+function triggerFile(id){document.getElementById(id)?.click();}
+function handleDrop(e,id){e.preventDefault();e.currentTarget.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f,id.replace('doc_',''));}
+function fileSelected(input,key){if(input.files[0])processFile(input.files[0],key);}
+function processFile(file,key){
+  _files[key]=file.name;
+  const el=document.getElementById('file_'+key);
+  if(el)el.innerHTML=`<div class="file-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${file.name} <span style="margin-left:auto;color:var(--muted);font-size:.65rem">${(file.size/1024).toFixed(0)}KB</span></div>`;
+}
+
+// ── CHARTS
+function initCharts(){
+  const rCtx=document.getElementById('raiseChart')?.getContext('2d');
+  if(rCtx){
+    new Chart(rCtx,{type:'bar',data:{labels:['Maize—Ogun','Rice—Kebbi'],datasets:[{label:'Raised',data:[28800,29250],backgroundColor:'#00ff87',borderRadius:6},{label:'Target',data:[40000,65000],backgroundColor:'rgba(240,192,64,.2)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{color:'#4a8a5c',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(0,255,135,.06)'}},x:{ticks:{color:'#4a8a5c'},grid:{display:false}}},plugins:{legend:{labels:{color:'#86efac',font:{size:10}}}}}});
+  }
+  const iCtx=document.getElementById('invDistChart')?.getContext('2d');
+  if(iCtx){
+    new Chart(iCtx,{type:'doughnut',data:{labels:['Maize—Ogun (18)','Rice—Kebbi (16)'],datasets:[{data:[18,16],backgroundColor:['#00ff87','#f0c040'],borderWidth:0}]},options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#4a8a5c',font:{size:9},padding:8}}}}});
+  }
+}
+
+// ── WALLET
+function detectWallets(){const w=[];if(window.solana?.isPhantom)w.push({id:'phantom',name:'Phantom',p:window.solana});if(window.solflare?.isSolflare)w.push({id:'solflare',name:'Solflare',p:window.solflare});if(window.backpack)w.push({id:'backpack',name:'Backpack',p:window.backpack});return w;}
+function buildWalletOpts(){
+  const inst=detectWallets().map(w=>w.id);
+  const ALL=[{id:'phantom',name:'Phantom',desc:'Most popular Solana wallet'},{id:'solflare',name:'Solflare',desc:'Secure multi-asset wallet'},{id:'backpack',name:'Backpack',desc:'Multi-chain wallet'}];
+  const icons={phantom:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#ab9ff2"/><path d="M32 20.5c0 6.627-5.373 12-12 12s-12-5.373-12-12 5.373-12 12-12 12 5.373 12 12zm-7-.5c0-2.761-2.239-5-5-5s-5 2.239-5 5 2.239 5 5 5 5-2.239 5-5z" fill="white"/></svg>`,solflare:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#FC8800"/><path d="M20 8l10 12-10 12-10-12z" fill="white" opacity=".9"/></svg>`,backpack:`<svg width="28" height="28" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#E33E3F"/><path d="M12 16h16v16H12z M16 16V12a4 4 0 018 0v4" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`};
+  return ALL.map(w=>`<div class="wallet-opt" onclick="connectWallet('${w.id}')"><div class="w-icon">${icons[w.id]||''}</div><div><div class="w-name">${w.name}</div><div class="w-desc">${w.desc}</div></div>${inst.includes(w.id)?'<span class="w-detected">Detected</span>':'<svg class="w-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'}</div>`).join('');
+}
+function openWalletModal(){document.getElementById('walletOpts').innerHTML=buildWalletOpts();document.getElementById('walletModal').classList.add('open');}
+function closeWalletModal(){document.getElementById('walletModal').classList.remove('open');}
+async function connectWallet(id){
+  closeWalletModal();
+  const all=detectWallets(),w=all.find(x=>x.id===id);
+  if(!w){const urls={phantom:'https://phantom.app/',solflare:'https://solflare.com/',backpack:'https://backpack.app/'};if(urls[id])window.open(urls[id],'_blank');showToast('info','Not Installed','Install '+id+' then retry');return;}
+  showToast('info','Connecting...','Opening '+w.name);
+  try{
+    const r=await w.p.connect(),addr=r.publicKey.toString();
+    _ws={connected:true,address:addr,name:w.name,provider:w.p};
+    localStorage.setItem(WALLET_KEY,JSON.stringify({address:addr,name:w.name,walletId:id}));
+    updateWalletUI();showToast('success','Connected!',w.name+': '+fmt(addr));
+    onConnected();watchWallet();
+  }catch(e){if(e.code===4001)showToast('info','Cancelled','Connection cancelled');else showToast('error','Failed',e.message||'Try again');}
+}
+async function disconnectWallet(){
+  try{if(_ws.provider?.disconnect)await _ws.provider.disconnect();}catch(e){}
+  _ws={connected:false,address:null,name:null,provider:null};
+  localStorage.removeItem(WALLET_KEY);
+  updateWalletUI();onDisconnected();showToast('info','Disconnected','Wallet disconnected');
+}
+async function restoreWallet(){
+  const s=localStorage.getItem(WALLET_KEY);if(!s)return;
+  try{const{address,name,walletId}=JSON.parse(s),all=detectWallets(),w=all.find(x=>x.id===walletId);if(!w)return;
+    if(w.p.isConnected&&w.p.publicKey){_ws={connected:true,address:w.p.publicKey.toString(),name,provider:w.p};updateWalletUI();onConnected();watchWallet();return;}
+    try{const r=await w.p.connect({onlyIfTrusted:true});_ws={connected:true,address:r.publicKey.toString(),name,provider:w.p};updateWalletUI();onConnected();watchWallet();}catch(e){}
+  }catch(e){localStorage.removeItem(WALLET_KEY);}
+}
+function watchWallet(){if(!_ws.provider)return;_ws.provider.on?.('disconnect',()=>{_ws={connected:false,address:null,name:null,provider:null};localStorage.removeItem(WALLET_KEY);updateWalletUI();onDisconnected();showToast('info','Disconnected','Wallet session ended');});_ws.provider.on?.('accountChanged',pk=>{if(pk){_ws.address=pk.toString();updateWalletUI();}else disconnectWallet();});}
+function updateWalletUI(){
+  const btn=document.getElementById('btnWallet'),chip=document.getElementById('addrChip'),sw=document.getElementById('sidebarWallet'),scb=document.getElementById('sidebarConnectBtn'),swAddr=document.getElementById('swAddr');
+  if(!btn)return;
+  if(_ws.connected){
+    btn.className='btn-wallet connected';btn.innerHTML=`<span class="w-dot"></span>${fmt(_ws.address)}`;btn.onclick=disconnectWallet;btn.title='Click to disconnect';
+    if(chip){chip.style.display='flex';document.getElementById('addrText').textContent=fmt(_ws.address);}
+    if(sw)sw.style.display='block';if(scb)scb.style.display='none';if(swAddr)swAddr.textContent=_ws.address;
+    // Pre-fill wallet field in KYC
+    const wf=document.getElementById('f_wallet');if(wf)wf.value=_ws.address;
+  }else{
+    btn.className='btn-wallet';btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg> Connect Wallet`;btn.onclick=openWalletModal;
+    if(chip)chip.style.display='none';if(sw)sw.style.display='none';if(scb)scb.style.display='flex';
+  }
+  // Update all panels gate visibility
+  PANELS.forEach(p=>{
+    const g=document.getElementById('gate-'+p),c=document.getElementById(p+'-content');
+    if(g)g.style.display=_ws.connected?'none':'flex';
+    if(c)c.style.display=_ws.connected?'block':'none';
+  });
+}
+function onConnected(){
+  document.getElementById('farmerWelcome').textContent=fmt(_ws.address);
+  const wf=document.getElementById('f_wallet');if(wf)wf.value=_ws.address;
+  renderMyFarms('overviewFarms');
+  renderMyFarms('myFarmsGrid');
+  renderPayouts();
+  initCharts();
+  initCounters();
+}
+function onDisconnected(){}
+async function copyAddr(){if(!_ws.address)return;try{await navigator.clipboard.writeText(_ws.address);showToast('success','Copied!','Address copied to clipboard');}catch(e){showToast('error','Failed','Could not copy');}}
+function fmt(a){if(!a)return'';return a.slice(0,4)+'...'+a.slice(-4);}
+function toggleSidebar(){document.getElementById('sidebar')?.classList.toggle('mobile-open');}
+
+// ── TOAST
+function showToast(type,title,msg,dur=4000){
+  const c=document.getElementById('toastContainer'),icons={success:'✓',error:'✕',info:'i'};
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<span class="toast-icon">${icons[type]||'i'}</span><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  c.appendChild(el);requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},dur);
+}
+
+// ── PARTICLES
+function initParticles(){
+  const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');
+  function r(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}r();window.addEventListener('resize',r);
+  const pts=Array.from({length:50},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*.7+.2,vx:(Math.random()-.5)*.12,vy:(Math.random()-.5)*.12,a:Math.random()*.18+.04,c:Math.random()>.7?'#f0c040':'#00ff87'}));
+  (function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.c;ctx.globalAlpha=p.a;ctx.fill();});ctx.globalAlpha=1;requestAnimationFrame(draw);})();
+}
+
+// ── COUNTERS
+function initCounters(){
+  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){const el=e.target,t=parseFloat(el.dataset.count),pre=el.dataset.prefix||'',suf=el.dataset.suffix||'',dur=1600,start=performance.now();(function u(now){const p=Math.min((now-start)/dur,1),ease=1-Math.pow(1-p,3),cur=t*ease;el.textContent=pre+(t>999?Math.floor(cur).toLocaleString():Math.floor(cur))+suf;if(p<1)requestAnimationFrame(u);})(start);obs.unobserve(el);}});},{threshold:.5});
+  document.querySelectorAll('[data-count]').forEach(el=>obs.observe(el));
+}
+
+// ── INIT
+initParticles();
+window.addEventListener('load',()=>restoreWallet());
+</script>
+</body>
+</html>

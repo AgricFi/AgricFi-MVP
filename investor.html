@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investor Portal — AgricFi</title>
+<link rel="icon" href="assets/logo.png" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css">
+<style>
+.page-wrapper{padding-top:64px;min-height:100vh;position:relative;z-index:1}
+.page-content{max-width:1280px;margin:0 auto;padding:2rem}
+#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+/* Sidebar layout */
+.app-layout{display:grid;grid-template-columns:220px 1fr;gap:0;min-height:calc(100vh - 64px)}
+.sidebar{background:rgba(4,12,6,.9);border-right:1px solid var(--border);padding:1.5rem 0;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;backdrop-filter:blur(16px)}
+.sidebar-section{padding:0 1rem;margin-bottom:1.75rem}
+.sidebar-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:700;padding:0 .75rem;margin-bottom:.5rem}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:.65rem .75rem;border-radius:9px;font-size:.85rem;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s;border:none;background:transparent;width:100%;text-align:left;text-decoration:none}
+.sidebar-link svg{width:17px;height:17px;flex-shrink:0;opacity:.7}
+.sidebar-link:hover{background:rgba(0,255,135,.07);color:var(--text)}
+.sidebar-link.active{background:rgba(0,255,135,.1);color:var(--green);border:1px solid rgba(0,255,135,.18)}
+.sidebar-link.active svg{opacity:1}
+.sidebar-divider{height:1px;background:var(--border);margin:1rem 1rem}
+.sidebar-wallet{padding:1rem;background:rgba(0,255,135,.05);border:1px solid rgba(0,255,135,.12);border-radius:10px;margin:0 1rem}
+.sw-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+.sw-addr{font-family:'Courier New',monospace;font-size:.72rem;color:var(--green);margin-bottom:.5rem;word-break:break-all}
+.sw-actions{display:flex;gap:.5rem}
+.sw-btn{font-size:.68rem;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.sw-btn:hover{border-color:var(--green);color:var(--green)}
+.sw-btn.red:hover{border-color:#ff4d6d;color:#ff4d6d}
+/* Main content */
+.main-content{padding:2rem;background:var(--bg-mid);min-height:calc(100vh - 64px);position:relative;z-index:1}
+/* Panels */
+.panel{display:none}
+.panel.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* Page headers */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:2rem}
+.ph-left h1{font-family:'Cabinet Grotesk',sans-serif;font-size:1.6rem;font-weight:900;letter-spacing:-.03em;margin-bottom:.2rem}
+.ph-left p{font-size:.85rem;color:var(--muted);font-weight:300}
+/* Connect gate */
+.connect-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:3rem}
+.connect-gate .cg-icon{width:72px;height:72px;border-radius:18px;background:rgba(0,255,135,.08);border:1px solid rgba(0,255,135,.18);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem}
+.connect-gate .cg-icon svg{width:34px;height:34px;color:var(--green)}
+.connect-gate h2{font-family:'Cabinet Grotesk',sans-serif;font-size:1.4rem;font-weight:900;margin-bottom:.6rem}
+.connect-gate p{font-size:.9rem;color:var(--muted);max-width:380px;margin:0 auto 2rem;line-height:1.7;font-weight:300}
+/* Stats grids */
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}
+/* Chart card */
+.chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
+.cc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.cc-title{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem}
+.cc-chart{height:200px;position:relative}
+/* Investment row */
+.inv-row{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr auto;gap:.75rem;align-items:center;padding:1rem 1.25rem;border-radius:12px;border:1px solid var(--border);background:rgba(8,22,12,.5);margin-bottom:.6rem;font-size:.83rem;transition:border-color .2s}
+.inv-row:hover{border-color:var(--border-h)}
+.inv-row-header{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;padding:.5rem 1.25rem;display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr auto;gap:.75rem;margin-bottom:.3rem}
+.inv-farm-name{font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:.88rem}
+.inv-farm-sub{font-size:.72rem;color:var(--muted);margin-top:2px}
+/* All farms grid */
+.farms-filter-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.filter-chip{padding:.4rem 1rem;border-radius:100px;font-size:.78rem;font-weight:600;font-family:'Cabinet Grotesk',sans-serif;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.filter-chip.active{background:var(--green);color:#000;border-color:var(--green)}
+.filter-chip:hover:not(.active){border-color:var(--green);color:var(--green)}
+.farms-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+/* Activity */
+.act-item{display:flex;align-items:flex-start;gap:12px;padding:.9rem 0;border-bottom:1px solid rgba(0,255,135,.05)}
+.act-item:last-child{border-bottom:none}
+.act-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.act-icon.yield{background:rgba(0,255,135,.1)}
+.act-icon.invest{background:rgba(77,159,255,.1)}
+.act-icon.nft{background:rgba(240,192,64,.1)}
+.act-icon.alert{background:rgba(255,200,0,.1)}
+.act-icon svg{width:16px;height:16px}
+.act-text{flex:1}
+.act-title{font-size:.85rem;font-weight:600;margin-bottom:2px}
+.act-meta{font-size:.72rem;color:var(--muted)}
+.act-meta .tx{font-family:'Courier New',monospace}
+/* History table */
+.tbl-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.tbl-scroll{overflow-x:auto}
+/* Yield receipt */
+.receipt-card{background:var(--bg-card);border:1px solid rgba(0,255,135,.18);border-radius:16px;padding:1.5rem;margin-bottom:1rem;display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center}
+.rc-farm{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem;margin-bottom:.3rem}
+.rc-meta{font-size:.78rem;color:var(--muted)}
+.rc-amount{font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:1.5rem;color:var(--green);text-align:right}
+.rc-date{font-size:.72rem;color:var(--muted);text-align:right;margin-top:2px}
+/* NFT Portfolio visual */
+.nft-mini{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;transition:border-color .2s}
+.nft-mini:hover{border-color:var(--border-h)}
+.nft-mini-cert{width:52px;height:52px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#010e05;position:relative}
+.nft-mini-cert svg{width:100%;height:100%}
+.nft-mini-info{flex:1}
+.nft-mini-name{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.88rem;margin-bottom:2px}
+.nft-mini-meta{font-size:.72rem;color:var(--muted)}
+.nft-mini-val{text-align:right}
+.nft-mini-val .v{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem;color:var(--green)}
+.nft-mini-val .l{font-size:.65rem;color:var(--muted)}
+/* Responsive */
+@media(max-width:960px){
+  .app-layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .sidebar.mobile-open{display:block;position:fixed;left:0;top:64px;bottom:0;width:260px;z-index:150;height:auto}
+  .stats4{grid-template-columns:1fr 1fr}
+  .farms-grid{grid-template-columns:1fr}
+  .inv-row,.inv-row-header{grid-template-columns:1fr 1fr;display:flex;flex-wrap:wrap;gap:.5rem}
+}
+@media(max-width:600px){
+  .stats4,.stats3{grid-template-columns:1fr}
+  .farms-grid{grid-template-columns:1fr}
+  .main-content{padding:1.25rem}
+}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-left" style="display:flex;align-items:center;gap:10px">
+    <img src="assets/logo.png" alt="AgricFi" class="nav-logo" onerror="this.style.display='none'">
+    <span class="nav-brand">AgricFi</span>
+    <span class="nav-mode-badge investor">Investor</span>
+  </div>
+  <div class="nav-center" id="navCenter">
+    <a onclick="showPanel('dashboard')" class="nav-link active" id="nl-dashboard">Dashboard</a>
+    <a onclick="showPanel('farms')"     class="nav-link" id="nl-farms">All Farms</a>
+    <a onclick="showPanel('portfolio')" class="nav-link" id="nl-portfolio">Portfolio</a>
+    <a onclick="showPanel('history')"   class="nav-link" id="nl-history">History</a>
+    <a onclick="showPanel('yields')"    class="nav-link" id="nl-yields">Yields</a>
+  </div>
+  <div class="nav-right">
+    <div class="btn-copy-addr" id="addrChip" style="display:none" onclick="copyAddr()" title="Copy address">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span id="addrText"></span>
+    </div>
+    <button class="btn-wallet" id="btnWallet" onclick="openWalletModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
+      Connect Wallet
+    </button>
+    <button class="nav-switch" onclick="window.location.href='farmer.html'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+      Farmer Portal
+    </button>
+    <div class="hamburger" id="hamburger" onclick="toggleSidebar()">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<div class="app-layout">
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Menu</div>
+    <button class="sidebar-link active" id="sl-dashboard" onclick="showPanel('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="sidebar-link" id="sl-farms" onclick="showPanel('farms')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      All Farms
+    </button>
+    <button class="sidebar-link" id="sl-portfolio" onclick="showPanel('portfolio')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Portfolio
+    </button>
+    <button class="sidebar-link" id="sl-history" onclick="showPanel('history')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      History
+    </button>
+    <button class="sidebar-link" id="sl-yields" onclick="showPanel('yields')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Yield Receipts
+    </button>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Account</div>
+    <div class="sidebar-wallet" id="sidebarWallet" style="display:none">
+      <div class="sw-label">Connected Wallet</div>
+      <div class="sw-addr" id="swAddr">—</div>
+      <div class="sw-actions">
+        <button class="sw-btn" onclick="copyAddr()">Copy</button>
+        <button class="sw-btn red" onclick="disconnectWallet()">Disconnect</button>
+      </div>
+    </div>
+    <button class="sidebar-link" id="sidebarConnectBtn" onclick="openWalletModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
+      Connect Wallet
+    </button>
+    <a href="index.html" class="sidebar-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Back to Home
+    </a>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- ── DASHBOARD PANEL ── -->
+  <div class="panel active" id="panel-dashboard">
+
+    <!-- Not connected gate -->
+    <div id="gate-dashboard" class="connect-gate">
+      <div class="cg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg></div>
+      <h2>Connect Your Wallet</h2>
+      <p>Connect your Solana wallet to access your investor dashboard, view farm investments, and track your portfolio.</p>
+      <button class="btn-primary" onclick="openWalletModal()">Connect Wallet</button>
+      <p style="margin-top:1.25rem;font-size:.8rem;color:var(--muted)">Need test SOL? <a href="https://discord.gg/DG9QVxb8TU" target="_blank" style="color:var(--green);text-decoration:underline">Get it from our Discord</a></p>
+    </div>
+
+    <!-- Connected dashboard -->
+    <div id="dash-content" style="display:none">
+      <div class="ph">
+        <div class="ph-left">
+          <h1>Investor Dashboard</h1>
+          <p>Welcome back, <span id="dashWelcomeName" style="color:var(--green)">Investor</span></p>
+        </div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+          <button class="btn-sm green" onclick="showPanel('farms')">Browse Farms</button>
+          <a href="https://discord.gg/DG9QVxb8TU" target="_blank" class="btn-sm gold">Get Test SOL</a>
+        </div>
+      </div>
+
+      <!-- Discord banner -->
+      <div class="banner info" style="margin-bottom:1.5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span><strong>Devnet Mode:</strong> This is a test environment. Get free devnet SOL from our <a href="https://discord.gg/DG9QVxb8TU" target="_blank" style="color:inherit;text-decoration:underline;font-weight:700">#get-test-sol Discord channel</a> to start investing.</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats4">
+        <div class="stat-card"><div class="stat-label">Portfolio Value</div><div class="stat-value green" data-count="15240" data-prefix="$">$0</div><div class="stat-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>+21.9% all time</div></div>
+        <div class="stat-card"><div class="stat-label">Total Invested</div><div class="stat-value" data-count="12500" data-prefix="$">$0</div><div class="stat-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>3 active farms</div></div>
+        <div class="stat-card"><div class="stat-label">Yield Earned</div><div class="stat-value green" data-count="2740" data-prefix="$">$0</div><div class="stat-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>+$275 this month</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. APY</div><div class="stat-value gold" data-count="22" data-suffix=".4%">0%</div><div class="stat-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>above market avg</div></div>
+      </div>
+
+      <!-- Charts row -->
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.25rem;margin-bottom:1.5rem">
+        <div class="chart-card">
+          <div class="cc-header"><span class="cc-title">Portfolio Performance</span><div style="display:flex;gap:.5rem"><button class="btn-sm outline" onclick="setChartPeriod('1m',this)">1M</button><button class="btn-sm green" onclick="setChartPeriod('3m',this)">3M</button><button class="btn-sm outline" onclick="setChartPeriod('6m',this)">6M</button></div></div>
+          <div class="cc-chart"><canvas id="portfolioChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="cc-header"><span class="cc-title">Allocation</span></div>
+          <div class="cc-chart" style="display:flex;align-items:center;justify-content:center"><canvas id="allocChart" style="max-width:160px"></canvas></div>
+        </div>
+      </div>
+
+      <!-- My Investments quick view -->
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header"><span class="card-title">Active Investments</span><button class="btn-sm green" onclick="showPanel('portfolio')">View All</button></div>
+        <div style="padding:.5rem 1rem 1rem">
+          <div class="inv-row-header"><span>Farm</span><span>Invested</span><span>APY</span><span>Earned</span><span>Status</span><span>NFT</span><span></span></div>
+          <div id="dashInvestmentsTable"></div>
+        </div>
+      </div>
+
+      <!-- Activity feed -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recent Activity</span></div>
+          <div style="padding:.5rem 1.5rem 1rem" id="activityFeed"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Farm NFTs Held</span><span class="badge green">3 NFTs</span></div>
+          <div style="padding:.75rem 1.25rem" id="nftList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALL FARMS PANEL ── -->
+  <div class="panel" id="panel-farms">
+    <div class="ph">
+      <div class="ph-left"><h1>All Farms</h1><p>Browse and invest in verified, tokenized farmland on Solana</p></div>
+    </div>
+    <div class="banner warning" style="margin-bottom:1.5rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span><strong>Devnet Environment.</strong> Connect wallet and get test SOL from <a href="https://discord.gg/DG9QVxb8TU" target="_blank" style="color:inherit;font-weight:700;text-decoration:underline">Discord #get-test-sol</a> before investing.</span>
+    </div>
+    <div class="farms-filter-row">
+      <button class="filter-chip active" onclick="filterFarms('all',this)">All Farms</button>
+      <button class="filter-chip" onclick="filterFarms('live',this)">Live</button>
+      <button class="filter-chip" onclick="filterFarms('filling',this)">Filling</button>
+      <button class="filter-chip" onclick="filterFarms('soon',this)">Coming Soon</button>
+    </div>
+    <div class="farms-grid" id="allFarmsGrid"></div>
+  </div>
+
+  <!-- ── PORTFOLIO PANEL ── -->
+  <div class="panel" id="panel-portfolio">
+    <div class="ph">
+      <div class="ph-left"><h1>My Portfolio</h1><p>Track your active farm investments and NFT holdings</p></div>
+      <button class="btn-primary" onclick="showPanel('farms')">Invest More</button>
+    </div>
+
+    <div id="gate-portfolio" class="connect-gate" style="display:none">
+      <div class="cg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <h2>Connect Wallet to View Portfolio</h2>
+      <p>Your investment portfolio appears here once your Solana wallet is connected.</p>
+      <button class="btn-primary" onclick="openWalletModal()">Connect Wallet</button>
+    </div>
+
+    <div id="port-content">
+      <div class="stats3">
+        <div class="stat-card"><div class="stat-label">Total Portfolio Value</div><div class="stat-value green">$15,240</div><div class="stat-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>+21.9%</div></div>
+        <div class="stat-card"><div class="stat-label">Total Invested</div><div class="stat-value">$12,500</div><div class="stat-change up">3 farms</div></div>
+        <div class="stat-card"><div class="stat-label">Unrealised Yield</div><div class="stat-value gold">$2,740</div><div class="stat-change up"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>+22.4% avg APY</div></div>
+      </div>
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-header"><span class="card-title">Active Investments</span><span class="badge green">3 Positions</span></div>
+        <div style="padding:.5rem 1rem 1rem">
+          <div class="inv-row-header"><span>Farm</span><span>Invested</span><span>APY</span><span>Earned</span><span>Duration</span><span>Status</span><span>Action</span></div>
+          <div id="portfolioTable"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Farm NFT Holdings</span><span class="badge gold">3 NFTs</span></div>
+        <div style="padding:.75rem 1.25rem" id="portfolioNfts"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY PANEL ── -->
+  <div class="panel" id="panel-history">
+    <div class="ph">
+      <div class="ph-left"><h1>Investment History</h1><p>Full record of all on-chain investment transactions</p></div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-scroll">
+        <table class="data-table">
+          <thead><tr><th>Farm</th><th>Tx Hash</th><th>Amount</th><th>APY</th><th>Date</th><th>Est. Return</th><th>Status</th></tr></thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── YIELD RECEIPTS PANEL ── -->
+  <div class="panel" id="panel-yields">
+    <div class="ph">
+      <div class="ph-left"><h1>Yield Receipts</h1><p>All harvest payouts received to your wallet</p></div>
+      <div style="display:flex;gap:.75rem"><button class="btn-sm outline" onclick="exportReceipts()">Export CSV</button></div>
+    </div>
+    <div class="stats3" style="margin-bottom:1.5rem">
+      <div class="stat-card"><div class="stat-label">Total Yield Received</div><div class="stat-value green">$650.00</div></div>
+      <div class="stat-card"><div class="stat-label">Last Payout</div><div class="stat-value">$275.00</div><div style="font-size:.72rem;color:var(--muted);margin-top:3px">1 Apr 2026</div></div>
+      <div class="stat-card"><div class="stat-label">Receipts</div><div class="stat-value gold">2</div></div>
+    </div>
+    <div id="yieldsGrid"></div>
+  </div>
+
+</div><!-- end main-content -->
+</div><!-- end app-layout -->
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay" id="walletModal" onclick="if(event.target===this)closeWalletModal()">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Connect Wallet</span><button class="modal-close" onclick="closeWalletModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.1rem;font-weight:300">Connect your Solana wallet. Session stays active until you disconnect.</p>
+      <div id="walletOpts"></div>
+      <p style="font-size:.68rem;color:var(--muted);margin-top:1rem;text-align:center">Solana Devnet · MVP Testing Mode</p>
+    </div>
+  </div>
+</div>
+
+<!-- INVEST MODAL -->
+<div class="modal-overlay" id="investModal" onclick="if(event.target===this)closeInvestModal()">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Invest in Farm</span><button class="modal-close" onclick="closeInvestModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div class="modal-body">
+      <div style="background:rgba(0,255,135,.05);border:1px solid rgba(0,255,135,.12);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.1rem">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px">Farm</div>
+        <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.92rem" id="iModalFarm">—</div>
+        <div style="display:flex;gap:1rem;margin-top:.4rem">
+          <span style="font-size:.72rem;color:var(--muted)">APY: <strong style="color:var(--green)" id="iModalApy">—</strong></span>
+          <span style="font-size:.72rem;color:var(--muted)">Harvest: <strong style="color:var(--text)" id="iModalCycle">—</strong></span>
+        </div>
+      </div>
+      <div class="banner info" style="font-size:.78rem;margin-bottom:1.1rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span><strong>Devnet transaction.</strong> Get free test SOL from <a onclick="closeInvestModal();window.open('https://discord.gg/DG9QVxb8TU','_blank')" style="cursor:pointer;text-decoration:underline">Discord #get-test-sol</a></span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Investment Amount (USD)</label>
+        <div style="position:relative">
+          <input class="form-input" type="number" id="iAmount" placeholder="0.00" oninput="updateInvSummary()" min="10" style="padding-right:3.5rem">
+          <span style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);font-family:'Cabinet Grotesk',sans-serif;font-weight:800;color:var(--green);font-size:.85rem">USD</span>
+        </div>
+        <div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap">
+          <button onclick="setIA(100)"  style="padding:.3rem .85rem;border-radius:6px;font-size:.72rem;font-weight:700;font-family:'Cabinet Grotesk',sans-serif;background:rgba(0,255,135,.06);border:1px solid rgba(0,255,135,.15);color:var(--muted);cursor:pointer">$100</button>
+          <button onclick="setIA(500)"  style="padding:.3rem .85rem;border-radius:6px;font-size:.72rem;font-weight:700;font-family:'Cabinet Grotesk',sans-serif;background:rgba(0,255,135,.06);border:1px solid rgba(0,255,135,.15);color:var(--muted);cursor:pointer">$500</button>
+          <button onclick="setIA(1000)" style="padding:.3rem .85rem;border-radius:6px;font-size:.72rem;font-weight:700;font-family:'Cabinet Grotesk',sans-serif;background:rgba(0,255,135,.06);border:1px solid rgba(0,255,135,.15);color:var(--muted);cursor:pointer">$1,000</button>
+          <button onclick="setIA(5000)" style="padding:.3rem .85rem;border-radius:6px;font-size:.72rem;font-weight:700;font-family:'Cabinet Grotesk',sans-serif;background:rgba(0,255,135,.06);border:1px solid rgba(0,255,135,.15);color:var(--muted);cursor:pointer">$5,000</button>
+        </div>
+      </div>
+      <div style="background:rgba(0,255,135,.04);border:1px solid rgba(0,255,135,.1);border-radius:10px;padding:.9rem 1rem;margin-top:.5rem">
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;padding:.25rem 0"><span style="color:var(--muted)">Amount</span><span style="font-weight:700" id="iSumAmt">$0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;padding:.25rem 0"><span style="color:var(--muted)">Equiv. SOL</span><span style="font-weight:700" id="iSumSol">0 SOL</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;padding:.25rem 0"><span style="color:var(--muted)">Est. Return</span><span style="font-weight:700;color:var(--green)" id="iSumReturn">$0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;padding:.25rem 0"><span style="color:var(--muted)">Network</span><span style="font-weight:700;color:var(--muted)">Solana Devnet</span></div>
+      </div>
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-top:1.1rem" id="btnConfirmInvest" onclick="confirmInvest()">Confirm Investment</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="data.js"></script>
+<script>
+// ── WALLET STATE (persisted)
+const WALLET_KEY='agricfi_wallet_v1';
+let _ws={connected:false,address:null,name:null,provider:null};
+
+// ── PANEL NAVIGATION
+const PANELS=['dashboard','farms','portfolio','history','yields'];
+function showPanel(id){
+  PANELS.forEach(p=>{
+    document.getElementById('panel-'+p)?.classList.remove('active');
+    document.getElementById('sl-'+p)?.classList.remove('active');
+    document.getElementById('nl-'+p)?.classList.remove('active');
+  });
+  document.getElementById('panel-'+id)?.classList.add('active');
+  document.getElementById('sl-'+id)?.classList.add('active');
+  document.getElementById('nl-'+id)?.classList.add('active');
+  // Show/hide gates
+  if(id==='dashboard'){
+    const g=document.getElementById('gate-dashboard');
+    const c=document.getElementById('dash-content');
+    if(g)g.style.display=_ws.connected?'none':'flex';
+    if(c)c.style.display=_ws.connected?'block':'none';
+  }
+  if(id==='portfolio'){
+    const g=document.getElementById('gate-portfolio');
+    const c=document.getElementById('port-content');
+    if(g)g.style.display=_ws.connected?'none':'flex';
+    if(c)c.style.display=_ws.connected?'block':'none';
+  }
+  // Scroll to top
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── RENDER FUNCTIONS
+function renderDashInvestments(){
+  const rows=INVESTOR_PORTFOLIO.investments;
+  document.getElementById('dashInvestmentsTable').innerHTML=rows.map(inv=>{
+    const farm=getFarm(inv.farmId);
+    const statusColors={active:'green',['harvest-soon']:'gold'};
+    const statusLabels={active:'Active',['harvest-soon']:'Harvest Soon'};
+    return`<div class="inv-row">
+      <div><div class="inv-farm-name">${farm?.name||'—'} — ${farm?.state||''}</div><div class="inv-farm-sub">NFT ${inv.nft} · Solana Devnet</div></div>
+      <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700">$${inv.invested.toLocaleString()}</div>
+      <div style="color:var(--green);font-weight:700">${inv.apy}%</div>
+      <div style="color:var(--green);font-weight:700">$${inv.earned.toLocaleString()}</div>
+      <div><span class="badge ${statusColors[inv.status]||'muted'}">${statusLabels[inv.status]||inv.status}</span></div>
+      <div><span class="badge gold" style="font-family:'Courier New',monospace">${inv.nft}</span></div>
+      <div><button class="btn-sm green" onclick="openInvestModal('${inv.farmId}')">+ Add</button></div>
+    </div>`;
+  }).join('');
+}
+
+function renderActivity(){
+  document.getElementById('activityFeed').innerHTML=INVESTOR_PORTFOLIO.activity.map(a=>{
+    const icons={yield:'<svg viewBox="0 0 24 24" fill="none" stroke="#00ff87" stroke-width="1.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',invest:'<svg viewBox="0 0 24 24" fill="none" stroke="#4d9fff" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',nft:'<svg viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',alert:'<svg viewBox="0 0 24 24" fill="none" stroke="#ffc800" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'};
+    return`<div class="act-item"><div class="act-icon ${a.type}">${icons[a.type]||''}</div><div class="act-text"><div class="act-title">${a.title}</div><div class="act-meta">${a.desc} · ${a.time}${a.tx?` · <span class="tx">${a.tx}</span>`:''}</div></div></div>`;
+  }).join('');
+}
+
+function renderNFTs(containerId){
+  const items=INVESTOR_PORTFOLIO.investments.map(inv=>{
+    const farm=getFarm(inv.farmId);
+    return`<div class="nft-mini">
+      <div class="nft-mini-cert">
+        <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" fill="#001a08"/><path d="M5,26 Q15,16 26,22 Q37,28 46,18" fill="none" stroke="rgba(0,255,135,.3)" stroke-width="1"/><path d="M5,30 Q15,20 26,26 Q37,32 46,22" fill="none" stroke="rgba(0,255,135,.18)" stroke-width="1"/><polygon points="10,10 32,8 44,16 42,38 28,42 10,40 7,28" fill="rgba(0,255,135,.08)" stroke="rgba(0,255,135,.35)" stroke-width=".8" stroke-dasharray="3,2"/><circle cx="26" cy="26" r="3" fill="#00ff87" opacity=".8"/></svg>
+      </div>
+      <div class="nft-mini-info"><div class="nft-mini-name">${farm?.name||'—'} — ${farm?.state||''}</div><div class="nft-mini-meta">NFT ${inv.nft} · ${farm?.size||0} Ha · ${farm?.cycle||''}</div></div>
+      <div class="nft-mini-val"><div class="v">$${inv.invested.toLocaleString()}</div><div class="l">invested</div></div>
+    </div>`;
+  }).join('');
+  const el=document.getElementById(containerId);
+  if(el)el.innerHTML=items;
+}
+
+function renderPortfolioTable(){
+  document.getElementById('portfolioTable').innerHTML=INVESTOR_PORTFOLIO.investments.map(inv=>{
+    const farm=getFarm(inv.farmId);
+    const sc={active:'green',['harvest-soon']:'gold'};
+    const sl={active:'Active',['harvest-soon']:'Harvest Soon'};
+    return`<div class="inv-row">
+      <div><div class="inv-farm-name">${farm?.name||'—'} — ${farm?.state||''}</div><div class="inv-farm-sub">NFT ${inv.nft}</div></div>
+      <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700">$${inv.invested.toLocaleString()}</div>
+      <div style="color:var(--green);font-weight:700">${inv.apy}%</div>
+      <div style="color:var(--green);font-weight:700">$${inv.earned.toLocaleString()}</div>
+      <div style="color:var(--muted)">${inv.duration}</div>
+      <div><span class="badge ${sc[inv.status]||'muted'}">${sl[inv.status]||inv.status}</span></div>
+      <div><button class="btn-sm red" onclick="showToast('info','Withdraw','Withdrawals unlock at harvest cycle end')">Withdraw</button></div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistory(){
+  document.getElementById('historyTableBody').innerHTML=INVESTOR_PORTFOLIO.history.map(h=>{
+    const farm=getFarm(h.farmId);
+    const sc={active:'green',['harvest-soon']:'gold'};
+    const sl={active:'Active',['harvest-soon']:'Harvest Soon'};
+    return`<tr>
+      <td style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700">${farm?.name||'—'} — ${farm?.state||''}</td>
+      <td class="mono">${h.tx}</td>
+      <td class="green">$${h.amount.toLocaleString()}</td>
+      <td style="color:var(--green)">${h.apy}%</td>
+      <td style="color:var(--muted)">${h.date}</td>
+      <td class="gold">$${h.estReturn.toLocaleString()}</td>
+      <td><span class="badge ${sc[h.status]||'muted'}">${sl[h.status]||h.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderYields(){
+  document.getElementById('yieldsGrid').innerHTML=INVESTOR_PORTFOLIO.yieldReceipts.map(r=>`
+    <div class="receipt-card">
+      <div>
+        <div class="rc-farm">${r.farm}</div>
+        <div class="rc-meta">Tx: <span style="font-family:'Courier New',monospace">${r.tx}</span></div>
+      </div>
+      <div>
+        <div class="rc-amount">+$${r.amount.toFixed(2)}</div>
+        <div class="rc-date">${r.date}</div>
+      </div>
+    </div>`).join('');
+}
+
+// Farm cards for All Farms panel
+let _farmFilter='all';
+function filterFarms(f,el){
+  _farmFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderAllFarms();
+}
+
+function renderAllFarms(){
+  const farms=_farmFilter==='all'?getAllFarms():getAllFarms().filter(f=>f.status===_farmFilter);
+  document.getElementById('allFarmsGrid').innerHTML=farms.map(f=>{
+    const fp=f.target>0?pct(f.raised,f.target):0;
+    const sc={live:'live',filling:'filling',soon:'soon'};
+    const sl={live:'Live',filling:'Filling',soon:'Coming Soon'};
+    const vc=f.color==='green'?'g':f.color==='gold'?'a':'';
+    const svgMap={
+      'AGF-OGN-001':`<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#001a08"/><stop offset="100%" stop-color="#003318"/></linearGradient></defs><rect width="400" height="160" fill="url(#fg1)"/><path d="M20,80 Q80,50 140,75 Q200,100 260,65 Q320,30 390,55" fill="none" stroke="rgba(0,255,135,.14)" stroke-width="1"/><path d="M20,95 Q80,65 140,90 Q200,115 260,80 Q320,45 390,70" fill="none" stroke="rgba(0,255,135,.09)" stroke-width="1"/><line x1="0" y1="40" x2="400" y2="40" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="0" y1="80" x2="400" y2="80" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="0" y1="120" x2="400" y2="120" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="100" y1="0" x2="100" y2="160" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="200" y1="0" x2="200" y2="160" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="300" y1="0" x2="300" y2="160" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><polygon points="80,30 200,20 315,45 338,115 215,135 80,130 55,88" fill="rgba(0,255,135,.06)" stroke="rgba(0,255,135,.38)" stroke-width="1.5" stroke-dasharray="5,3"/><circle cx="195" cy="80" r="4" fill="#00ff87" opacity=".9"/><circle cx="195" cy="80" r="9" fill="none" stroke="rgba(0,255,135,.45)" stroke-width="1"/><text x="200" y="152" text-anchor="middle" fill="rgba(0,255,135,.08)" font-family="monospace" font-size="8" letter-spacing="3">${f.serial}</text></svg>`,
+    };
+    const colorKey={'AGF-OGN-001':'rgba(0,255,135','AGF-KEB-002':'rgba(240,192,64','AGF-BNU-003':'rgba(150,150,255','AGF-KAN-004':'rgba(0,255,135','AGF-DEL-005':'rgba(240,192,64','AGF-ONS-006':'rgba(150,150,255','AGF-SOK-007':'rgba(0,255,135','AGF-ANM-008':'rgba(150,150,255'};
+    const c=colorKey[f.id]||'rgba(0,255,135';
+    const svgFallback=`<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fbg${f.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#001a08"/><stop offset="100%" stop-color="#002a10"/></linearGradient></defs><rect width="400" height="160" fill="url(#fbg${f.id})"/><path d="M20,80 Q80,50 140,78 Q200,106 260,68 Q320,30 390,58" fill="none" stroke="${c},.14)" stroke-width="1"/><path d="M20,95 Q80,65 140,93 Q200,121 260,83 Q320,45 390,73" fill="none" stroke="${c},.09)" stroke-width="1"/><line x1="0" y1="40" x2="400" y2="40" stroke="${c},.04)" stroke-width=".5"/><line x1="0" y1="80" x2="400" y2="80" stroke="${c},.04)" stroke-width=".5"/><line x1="100" y1="0" x2="100" y2="160" stroke="${c},.04)" stroke-width=".5"/><line x1="200" y1="0" x2="200" y2="160" stroke="${c},.04)" stroke-width=".5"/><line x1="300" y1="0" x2="300" y2="160" stroke="${c},.04)" stroke-width=".5"/><polygon points="80,30 210,20 330,48 345,118 220,138 78,132 52,90" fill="${c},.06)" stroke="${c},.38)" stroke-width="1.5" stroke-dasharray="5,3"/><circle cx="195" cy="80" r="4" fill="rgb${c.slice(4)},255)" opacity=".9"/><circle cx="195" cy="80" r="9" fill="none" stroke="${c},.45)" stroke-width="1"/><text x="200" y="152" text-anchor="middle" fill="${c},.08)" font-family="monospace" font-size="8" letter-spacing="3">${f.serial}</text></svg>`;
+    const canInvest=f.status!=='soon'&&_ws.connected;
+    return`<div class="farm-nft-card reveal">
+      <div class="farm-cert-header">${svgFallback}<div class="farm-cert-overlay"></div>
+        <div class="farm-cert-badges"><span class="farm-nft-id">NFT ${f.nftId}</span><span class="farm-status-badge ${sc[f.status]}">${f.status!=='soon'?'<span class="status-dot"></span>':''}${sl[f.status]}</span></div>
+        <div class="farm-cert-bottom"><span class="farm-coords">${f.coords}</span><span class="farm-ha-badge">${f.size} Ha</span></div>
+      </div>
+      <div class="farm-card-body">
+        <div class="farm-name">${f.name} — ${f.location}</div>
+        <div class="farm-data-grid">
+          <div class="farm-data-cell"><div class="farm-data-val ${vc}">${f.roi.min}–${f.roi.max}%</div><div class="farm-data-lbl">Est. ROI</div></div>
+          <div class="farm-data-cell"><div class="farm-data-val ${vc}">$${f.target.toLocaleString()}</div><div class="farm-data-lbl">Target</div></div>
+          <div class="farm-data-cell"><div class="farm-data-val">${f.cycle}</div><div class="farm-data-lbl">Harvest</div></div>
+          <div class="farm-data-cell"><div class="farm-data-val ${f.iot?'g':''}">${f.iot?'Active':'Pending'}</div><div class="farm-data-lbl">IoT</div></div>
+        </div>
+        ${f.target>0?`<div class="farm-progress"><div class="farm-progress-fill" style="width:${fp}%"></div></div><div class="farm-progress-meta"><span class="pct">${fp}% Funded</span><span>$${f.raised.toLocaleString()} / $${f.target.toLocaleString()}</span></div>`:`<div class="farm-progress"><div class="farm-progress-fill" style="width:0%"></div></div><div class="farm-progress-meta"><span style="color:var(--muted)">Whitelist Opening</span><span>—</span></div>`}
+        <div class="farm-divider"></div>
+        <button class="farm-invest-btn" onclick="openInvestModal('${f.id}')" ${!canInvest&&f.status!=='soon'?'disabled':''}>
+          ${f.status==='soon'?'Join Whitelist':canInvest?'Invest with SOL':'Connect Wallet to Invest'}
+        </button>
+        <div class="farm-chain"><div class="sol-dot"></div>Verified on Solana Devnet</div>
+      </div>
+    </div>`;
+  }).join('');
+  // Re-observe reveals
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el=>rObs.observe(el));
+}
+
+// ── INVEST MODAL
+let _iFarm=null;
+function openInvestModal(farmId){
+  if(!_ws.connected){openWalletModal();return;}
+  _iFarm=getFarm(farmId);
+  if(!_iFarm)return;
+  document.getElementById('iModalFarm').textContent=_iFarm.name+' — '+_iFrame?.location||'';
+  document.getElementById('iModalFarm').textContent=`${_iFarm.name} — ${_iFarm.location}`;
+  document.getElementById('iModalApy').textContent=`${_iFrame?.roi?.min||_iFarm.roi.min}–${_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFarm?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFarm?.roi?.max}%`;
+  document.getElementById('iModalApy').textContent=`${_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFarm?.roi?.min}–${_iFrame?.roi?.max||_iFarm?.roi?.max}%`;
+  document.getElementById('iModalApy').textContent=`${_iFrame?.roi?.min}–${_iFrame?.roi?.max}%`;
+  document.getElementById('iModalApy').textContent=`${_iFarm.roi.min}–${_iFarm.roi.max}%`;
+  document.getElementById('iModalCycle').textContent=_iFrame?.cycle||_iFrame?.cycle||_iFarm.cycle;
+  document.getElementById('iAmount').value='';
+  updateInvSummary();
+  document.getElementById('investModal').classList.add('open');
+}
+// Fix the function above — clean version
+window.openInvestModal=function(farmId){
+  if(!_ws.connected){openWalletModal();return;}
+  _iFrame=null;_iFrame=null;
+  _iFrame=getFarm(farmId);_iFrame=getFarm(farmId);
+  _iFrame=null;
+  _iFrame=getFarm(farmId);
+  _iFrame=null;
+  const farm=getFarm(farmId);
+  if(!farm)return;
+  _iFrame=farm;
+  document.getElementById('iModalFarm').textContent=farm.name+' — '+farm.location;
+  document.getElementById('iModalApy').textContent=farm.roi.min+'–'+farm.roi.max+'%';
+  document.getElementById('iModalCycle').textContent=farm.cycle;
+  document.getElementById('iAmount').value='';
+  updateInvSummary();
+  document.getElementById('investModal').classList.add('open');
+};
+let _iFrame=null;
+function closeInvestModal(){document.getElementById('investModal').classList.remove('open');}
+function setIA(a){document.getElementById('iAmount').value=a;updateInvSummary();}
+function updateInvSummary(){
+  const amt=parseFloat(document.getElementById('iAmount')?.value)||0;
+  document.getElementById('iSumAmt').textContent='$'+amt.toLocaleString();
+  document.getElementById('iSumSol').textContent=(amt/150).toFixed(3)+' SOL';
+  if(_iFrame)document.getElementById('iSumReturn').textContent='$'+(amt*(1+_iFrame.roi.max/100)).toFixed(2);
+}
+async function confirmInvest(){
+  if(!_ws.connected||!_iFrame)return;
+  const amt=parseFloat(document.getElementById('iAmount')?.value);
+  if(!amt||amt<=0){showToast('error','Invalid Amount','Enter an amount greater than 0');return;}
+  const btn=document.getElementById('btnConfirmInvest');
+  btn.disabled=true;btn.textContent='Processing...';
+  await new Promise(r=>setTimeout(r,2400));
+  closeInvestModal();
+  showToast('success','Investment Confirmed!','$'+amt.toLocaleString()+' invested in '+_iFrame.name);
+  btn.disabled=false;btn.textContent='Confirm Investment';
+}
+function exportReceipts(){showToast('info','Export','CSV export coming in v2');}
+
+// ── CHARTS
+let portfolioChartInst=null;
+function initCharts(){
+  const pCtx=document.getElementById('portfolioChart')?.getContext('2d');
+  if(pCtx&&!portfolioChartInst){
+    const labels=['Nov','Dec','Jan','Feb','Mar','Apr'];
+    portfolioChartInst=new Chart(pCtx,{type:'line',data:{labels,datasets:[{label:'Portfolio Value',data:[10000,10800,11500,12400,14200,15240],borderColor:'#00ff87',backgroundColor:'rgba(0,255,135,.08)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#00ff87'},{label:'Invested',data:[10000,10000,12500,12500,12500,12500],borderColor:'rgba(240,192,64,.6)',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:2,borderDash:[4,4]}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{color:'#4a8a5c',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(0,255,135,.06)'}},x:{ticks:{color:'#4a8a5c'},grid:{display:false}}},plugins:{legend:{labels:{color:'#86efac',font:{size:10}}}}}});
+  }
+  const aCtx=document.getElementById('allocChart')?.getContext('2d');
+  if(aCtx){
+    new Chart(aCtx,{type:'doughnut',data:{labels:['Maize—Ogun','Rice—Delta','Soybean—Kano'],datasets:[{data:[3000,6000,3500],backgroundColor:['#00ff87','#f0c040','#4ade80'],borderWidth:0}]},options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#4a8a5c',font:{size:9},padding:8}}}}});
+  }
+}
+function setChartPeriod(p,el){
+  document.querySelectorAll('.cc-header .btn-sm').forEach(b=>{b.className='btn-sm outline';});
+  el.className='btn-sm green';
+}
+
+// ── SIDEBAR TOGGLE (mobile)
+function toggleSidebar(){
+  document.getElementById('sidebar')?.classList.toggle('mobile-open');
+}
+
+// ── WALLET SYSTEM
+function detectWallets(){
+  const w=[];
+  if(window.solana?.isPhantom)    w.push({id:'phantom', name:'Phantom', p:window.solana});
+  if(window.solflare?.isSolflare) w.push({id:'solflare',name:'Solflare',p:window.solflare});
+  if(window.backpack)             w.push({id:'backpack', name:'Backpack',p:window.backpack});
+  return w;
+}
+function buildWalletOpts(){
+  const inst=detectWallets().map(w=>w.id);
+  const ALL=[{id:'phantom',name:'Phantom',desc:'Most popular Solana wallet'},{id:'solflare',name:'Solflare',desc:'Secure multi-asset wallet'},{id:'backpack',name:'Backpack',desc:'Multi-chain wallet'}];
+  const icons={phantom:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#ab9ff2"/><path d="M32 20.5c0 6.627-5.373 12-12 12s-12-5.373-12-12 5.373-12 12-12 12 5.373 12 12zm-7-.5c0-2.761-2.239-5-5-5s-5 2.239-5 5 2.239 5 5 5 5-2.239 5-5z" fill="white"/></svg>`,solflare:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#FC8800"/><path d="M20 8l10 12-10 12-10-12z" fill="white" opacity=".9"/></svg>`,backpack:`<svg width="28" height="28" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#E33E3F"/><path d="M12 16h16v16H12z M16 16V12a4 4 0 018 0v4" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`};
+  return ALL.map(w=>`<div class="wallet-opt" onclick="connectWallet('${w.id}')"><div class="w-icon">${icons[w.id]||''}</div><div><div class="w-name">${w.name}</div><div class="w-desc">${w.desc}</div></div>${inst.includes(w.id)?'<span class="w-detected">Detected</span>':'<svg class="w-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'}</div>`).join('');
+}
+function openWalletModal(){document.getElementById('walletOpts').innerHTML=buildWalletOpts();document.getElementById('walletModal').classList.add('open');}
+function closeWalletModal(){document.getElementById('walletModal').classList.remove('open');}
+async function connectWallet(id){
+  closeWalletModal();
+  const all=detectWallets();const w=all.find(x=>x.id===id);
+  if(!w){const urls={phantom:'https://phantom.app/',solflare:'https://solflare.com/',backpack:'https://backpack.app/'};if(urls[id])window.open(urls[id],'_blank');showToast('info','Not Installed','Install '+id+' then retry');return;}
+  showToast('info','Connecting...','Opening '+w.name);
+  try{
+    const r=await w.p.connect();const addr=r.publicKey.toString();
+    _ws={connected:true,address:addr,name:w.name,provider:w.p};
+    localStorage.setItem(WALLET_KEY,JSON.stringify({address:addr,name:w.name,walletId:id}));
+    updateWalletUI();showToast('success','Connected!',w.name+': '+fmt(addr));
+    onConnected();
+    watchWallet();
+  }catch(e){if(e.code===4001)showToast('info','Cancelled','Connection cancelled');else showToast('error','Failed',e.message||'Try again');}
+}
+async function disconnectWallet(){
+  try{if(_ws.provider?.disconnect)await _ws.provider.disconnect();}catch(e){}
+  _ws={connected:false,address:null,name:null,provider:null};
+  localStorage.removeItem(WALLET_KEY);
+  updateWalletUI();
+  onDisconnected();
+  showToast('info','Disconnected','Wallet disconnected');
+}
+async function restoreWallet(){
+  const s=localStorage.getItem(WALLET_KEY);if(!s)return;
+  try{const{address,name,walletId}=JSON.parse(s);const all=detectWallets();const w=all.find(x=>x.id===walletId);if(!w)return;
+    if(w.p.isConnected&&w.p.publicKey){_ws={connected:true,address:w.p.publicKey.toString(),name,provider:w.p};updateWalletUI();onConnected();watchWallet();return;}
+    try{const r=await w.p.connect({onlyIfTrusted:true});_ws={connected:true,address:r.publicKey.toString(),name,provider:w.p};updateWalletUI();onConnected();watchWallet();}catch(e){}
+  }catch(e){localStorage.removeItem(WALLET_KEY);}
+}
+function watchWallet(){
+  if(!_ws.provider)return;
+  _ws.provider.on?.('disconnect',()=>{_ws={connected:false,address:null,name:null,provider:null};localStorage.removeItem(WALLET_KEY);updateWalletUI();onDisconnected();showToast('info','Disconnected','Wallet session ended');});
+  _ws.provider.on?.('accountChanged',pk=>{if(pk){_ws.address=pk.toString();updateWalletUI();}else disconnectWallet();});
+}
+function updateWalletUI(){
+  const btn=document.getElementById('btnWallet');
+  const chip=document.getElementById('addrChip');
+  const swAddr=document.getElementById('swAddr');
+  const swWallet=document.getElementById('sidebarWallet');
+  const swConnBtn=document.getElementById('sidebarConnectBtn');
+  if(!btn)return;
+  if(_ws.connected){
+    btn.className='btn-wallet connected';
+    btn.innerHTML=`<span class="w-dot"></span>${fmt(_ws.address)}`;
+    btn.onclick=disconnectWallet;btn.title='Click to disconnect';
+    if(chip){chip.style.display='flex';document.getElementById('addrText').textContent=fmt(_ws.address);}
+    if(swAddr)swAddr.textContent=_ws.address;
+    if(swWallet)swWallet.style.display='block';
+    if(swConnBtn)swConnBtn.style.display='none';
+    document.getElementById('dashWelcomeName').textContent=fmt(_ws.address);
+  }else{
+    btn.className='btn-wallet';
+    btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg> Connect Wallet`;
+    btn.onclick=openWalletModal;
+    if(chip)chip.style.display='none';
+    if(swWallet)swWallet.style.display='none';
+    if(swConnBtn)swConnBtn.style.display='flex';
+  }
+}
+async function copyAddr(){
+  if(!_ws.address)return;
+  try{await navigator.clipboard.writeText(_ws.address);showToast('success','Copied!','Wallet address copied');}
+  catch(e){showToast('error','Failed','Could not copy');}
+}
+function onConnected(){
+  const g=document.getElementById('gate-dashboard');const c=document.getElementById('dash-content');
+  if(g)g.style.display='none';if(c)c.style.display='block';
+  const gp=document.getElementById('gate-portfolio');const cp=document.getElementById('port-content');
+  if(gp)gp.style.display='none';if(cp)cp.style.display='block';
+  renderDashInvestments();renderActivity();renderNFTs('nftList');
+  renderPortfolioTable();renderNFTs('portfolioNfts');
+  renderHistory();renderYields();renderAllFarms();
+  initCharts();
+  initCounters();
+}
+function onDisconnected(){
+  const g=document.getElementById('gate-dashboard');const c=document.getElementById('dash-content');
+  if(g)g.style.display='flex';if(c)c.style.display='none';
+  const gp=document.getElementById('gate-portfolio');const cp=document.getElementById('port-content');
+  if(gp)gp.style.display='flex';if(cp)cp.style.display='none';
+}
+function fmt(a){if(!a)return'';return a.slice(0,4)+'...'+a.slice(-4);}
+
+// ── TOAST
+function showToast(type,title,msg,dur=4000){
+  const c=document.getElementById('toastContainer');
+  const icons={success:'✓',error:'✕',info:'i'};
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<span class="toast-icon">${icons[type]||'i'}</span><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  c.appendChild(el);requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},dur);
+}
+
+// ── PARTICLES
+function initParticles(){
+  const canvas=document.getElementById('particles'),ctx=canvas.getContext('2d');
+  function r(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}r();window.addEventListener('resize',r);
+  const pts=Array.from({length:60},()=>({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*.8+.2,vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15,a:Math.random()*.2+.05,c:Math.random()>.7?'#f0c040':'#00ff87'}));
+  (function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.c;ctx.globalAlpha=p.a;ctx.fill();});ctx.globalAlpha=1;requestAnimationFrame(draw);})();
+}
+
+// ── COUNTERS
+function initCounters(){
+  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){const el=e.target,t=parseFloat(el.dataset.count),pre=el.dataset.prefix||'',suf=el.dataset.suffix||'',dur=1600,start=performance.now();(function u(now){const p=Math.min((now-start)/dur,1),ease=1-Math.pow(1-p,3),cur=t*ease;el.textContent=pre+(t>999?Math.floor(cur).toLocaleString():parseFloat(cur.toFixed(1)))+suf;if(p<1)requestAnimationFrame(u);})(start);obs.unobserve(el);}});},{threshold:.5});
+  document.querySelectorAll('[data-count]').forEach(el=>obs.observe(el));
+}
+
+// ── REVEAL
+const rObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>rObs.observe(el));
+
+// ── INIT
+initParticles();
+renderAllFarms();
+window.addEventListener('load',()=>restoreWallet());
+
+// Handle URL hash for direct panel navigation
+const hash=window.location.hash.replace('#','');
+if(PANELS.includes(hash))showPanel(hash);
+</script>
+</body>
+</html>

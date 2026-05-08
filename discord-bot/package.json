@@ -1,0 +1,19 @@
+{
+  "name": "agricfi-discord-bot",
+  "version": "1.0.0",
+  "description": "AgricFi Discord bot — sends devnet SOL to users who submit wallet addresses",
+  "main": "bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node --watch bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "@solana/web3.js": "^1.91.1",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

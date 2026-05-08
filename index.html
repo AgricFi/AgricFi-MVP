@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgricFi — Real World Agriculture on Solana</title>
+<link rel="icon" href="assets/logo.png" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Chillax:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--black:#020804;--bg-mid:#060f08;--g1:#00ff87;--gold:#f0c040;--muted:#4a8a5c;--dim:#1e3a28;--text:#e8fef0;--glass:rgba(10,30,15,0.6);--border:rgba(0,255,135,0.12);--border-h:rgba(0,255,135,0.3)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Chillax',sans-serif;background:var(--black);color:var(--text);overflow-x:hidden;cursor:none}
+body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:.025}
+
+/* CURSOR */
+.cursor{width:12px;height:12px;background:var(--g1);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s;mix-blend-mode:screen}
+.cursor-trail{width:36px;height:36px;border:1px solid rgba(0,255,135,.4);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all .15s ease}
+#bgCanvas{position:fixed;inset:0;z-index:0;width:100%;height:100%}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1rem 2.5rem;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(2,8,4,.95) 0%,transparent 100%);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:1.3rem;letter-spacing:-.03em}
+.nav-logo img{width:36px;height:36px;border-radius:9px;object-fit:contain}
+.nav-logo-orb{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--g1),var(--gold));display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:#000;box-shadow:0 0 20px rgba(0,255,135,.4);animation:orbPulse 3s ease-in-out infinite}
+@keyframes orbPulse{0%,100%{box-shadow:0 0 20px rgba(0,255,135,.4)}50%{box-shadow:0 0 40px rgba(0,255,135,.7),0 0 80px rgba(0,255,135,.2)}}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{font-size:.78rem;font-weight:600;color:var(--muted);text-decoration:none;letter-spacing:.08em;text-transform:uppercase;transition:color .2s}
+.nav-links a:hover{color:var(--g1)}
+.nav-right{display:flex;align-items:center;gap:.75rem}
+/* Wallet button */
+.btn-wallet{display:flex;align-items:center;gap:8px;padding:.5rem 1.2rem;border-radius:8px;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--g1);color:var(--g1);background:transparent;cursor:none;transition:all .25s;position:relative;overflow:hidden}
+.btn-wallet::before{content:'';position:absolute;inset:0;background:var(--g1);transform:translateX(-101%);transition:transform .25s ease}
+.btn-wallet:hover::before{transform:translateX(0)}
+.btn-wallet span{position:relative;z-index:1;display:flex;align-items:center;gap:7px}
+.btn-wallet:hover span{color:#000}
+.btn-wallet.connected{border-color:rgba(0,255,135,.35);background:rgba(0,255,135,.08)}
+.btn-wallet.connected:hover::before{background:rgba(255,77,109,.2)}
+.btn-wallet.connected:hover span{color:#ff4d6d}
+.btn-wallet.connected:hover{border-color:#ff4d6d}
+.w-dot{width:7px;height:7px;border-radius:50%;background:var(--g1);animation:wPulse 2s infinite;flex-shrink:0}
+@keyframes wPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
+/* Address chip */
+.addr-chip{display:none;align-items:center;gap:7px;padding:.4rem .85rem;border-radius:8px;background:rgba(0,255,135,.07);border:1px solid rgba(0,255,135,.18);color:var(--muted);font-size:.72rem;font-weight:600;font-family:'Cabinet Grotesk',sans-serif;cursor:none;transition:all .2s}
+.addr-chip:hover{border-color:var(--g1);color:var(--g1)}
+.addr-chip svg{width:11px;height:11px}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;align-items:center;padding:7rem 3rem 4rem;position:relative;z-index:2;overflow:hidden}
+.hero-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 55% at 62% 40%,rgba(0,255,135,.07) 0%,transparent 70%),radial-gradient(ellipse 35% 35% at 85% 65%,rgba(240,192,64,.05) 0%,transparent 60%)}
+.hero-orb{position:absolute;right:-5%;top:50%;transform:translateY(-50%);width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,135,.13) 0%,rgba(0,255,135,.06) 35%,transparent 70%);pointer-events:none;animation:orbFloat 6s ease-in-out infinite;z-index:0}
+.hero-orb::before{content:'';position:absolute;inset:30px;border-radius:50%;border:1px solid rgba(0,255,135,.12);animation:orbFloat 6s ease-in-out infinite reverse}
+.hero-orb::after{content:'';position:absolute;inset:80px;border-radius:50%;border:1px solid rgba(0,255,135,.07)}
+@keyframes orbFloat{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-53%) scale(1.04)}}
+.hero-inner{max-width:1300px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr 480px;gap:3rem;align-items:center;position:relative;z-index:1}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(0,255,135,.25);background:rgba(0,255,135,.06);border-radius:100px;padding:.3rem .9rem .3rem .45rem;font-size:.68rem;color:var(--g1);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.25rem;animation:fadeUp .8s ease both}
+.eyebrow-dot{width:20px;height:20px;border-radius:50%;background:rgba(0,255,135,.15);display:flex;align-items:center;justify-content:center}
+.eyebrow-dot::after{content:'';width:6px;height:6px;background:var(--g1);border-radius:50%;animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.5}}
+.hero h1{font-family:'Cabinet Grotesk',sans-serif;font-size:clamp(3rem,5.5vw,5rem);font-weight:900;line-height:.95;letter-spacing:-.04em;margin-bottom:1.25rem;animation:fadeUp .8s .1s ease both}
+.hero h1 .line1{display:block;color:var(--text)}
+.hero h1 .line2{display:block;background:linear-gradient(90deg,var(--g1) 0%,var(--gold) 60%,var(--g1) 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite,fadeUp .8s .2s ease both}
+.hero h1 .line3{display:block;color:var(--text)}
+@keyframes shimmer{to{background-position:200% center}}
+.hero-sub{font-size:1rem;color:var(--muted);line-height:1.75;max-width:480px;margin-bottom:2rem;font-weight:300;animation:fadeUp .8s .3s ease both}
+
+/* MODE SELECTOR */
+.mode-selector{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:2rem;animation:fadeUp .8s .4s ease both}
+.mode-card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:1.25rem;cursor:none;transition:all .25s;text-align:left;position:relative;overflow:hidden;backdrop-filter:blur(12px)}
+.mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .25s}
+.mode-card.inv::before{background:linear-gradient(90deg,var(--g1),var(--gold))}
+.mode-card.far::before{background:linear-gradient(90deg,var(--gold),var(--g1))}
+.mode-card:hover{border-color:var(--border-h);transform:translateY(-3px)}
+.mode-card:hover::before{opacity:1}
+.mode-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem}
+.mode-icon.i{background:rgba(0,255,135,.1);border:1px solid rgba(0,255,135,.18)}
+.mode-icon.f{background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.18)}
+.mode-icon svg{width:20px;height:20px}
+.mode-title{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem;margin-bottom:.25rem}
+.mode-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
+.mode-arrow{position:absolute;bottom:.9rem;right:.9rem;color:var(--muted);transition:color .2s,transform .2s}
+.mode-card:hover .mode-arrow{color:var(--g1);transform:translateX(3px)}
+
+/* Hero stats */
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;animation:fadeUp .8s .5s ease both}
+.hero-stat{padding:1rem;background:var(--black);text-align:center}
+.hero-stat-num{font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:1.4rem;color:var(--g1);letter-spacing:-.02em}
+.hero-stat-lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+
+/* HERO VISUALS (Earth + Coin) */
+.hero-visuals{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:center;position:relative;animation:fadeUp .8s .3s ease both}
+.earth-scene{position:relative;display:flex;align-items:center;justify-content:center}
+#earthCanvas{width:100%;height:280px;filter:drop-shadow(0 0 40px rgba(0,255,135,.25))}
+.coin-scene{position:relative;display:flex;align-items:center;justify-content:center}
+#coinCanvas{width:100%;height:280px;filter:drop-shadow(0 0 50px rgba(0,255,135,.3))}
+.coin-rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(0,255,135,.08);animation:ringPulse 3s ease-in-out infinite}
+.ring:nth-child(1){width:200px;height:200px;animation-delay:0s}
+.ring:nth-child(2){width:280px;height:280px;animation-delay:.5s;border-color:rgba(240,192,64,.05)}
+@keyframes ringPulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.05);opacity:1}}
+.floating-card{position:absolute;background:rgba(5,20,10,.9);border:1px solid rgba(0,255,135,.2);backdrop-filter:blur(20px);border-radius:12px;padding:.75rem .9rem;animation:float 4s ease-in-out infinite;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.fc-top{top:-8px;right:-8px;animation-delay:0s}
+.fc-mid{bottom:8px;left:-8px;animation-delay:1.5s}
+.fc-coin{bottom:8px;right:-8px;animation-delay:.8s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.fc-label{font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:3px}
+.fc-value{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.9rem}
+.fc-value.green{color:var(--g1)}
+.fc-value.gold{color:var(--gold)}
+.fc-sub{font-size:.6rem;color:var(--muted);margin-top:2px}
+.fc-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(0,255,135,.1);border:1px solid rgba(0,255,135,.2);border-radius:99px;padding:1px 7px;font-size:.58rem;color:var(--g1);font-weight:700}
+
+/* SECTIONS */
+section{padding:5.5rem 3rem;position:relative;z-index:2}
+.sec-inner{max-width:1300px;margin:0 auto}
+.sec-tag{display:inline-block;font-size:.65rem;text-transform:uppercase;letter-spacing:.16em;color:var(--g1);font-weight:700;margin-bottom:.65rem}
+.sec-title{font-family:'Cabinet Grotesk',sans-serif;font-size:clamp(1.9rem,3.2vw,2.7rem);font-weight:900;line-height:1.05;letter-spacing:-.03em;margin-bottom:.85rem}
+.sec-sub{font-size:.95rem;color:var(--muted);max-width:540px;line-height:1.75}
+
+/* TVL */
+.tvl-section{background:linear-gradient(135deg,rgba(0,255,135,.04),rgba(240,192,64,.02));border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:4rem 3rem;position:relative;z-index:2}
+.tvl-grid{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.tvl-item{background:var(--black);padding:2.5rem 1.5rem;text-align:center}
+.tvl-num{font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:2.2rem;letter-spacing:-.04em;background:linear-gradient(135deg,var(--g1),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.35rem}
+.tvl-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+
+/* FARM NFT CARDS */
+.farm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem}
+.farm-nft-card{background:var(--glass);border:1px solid var(--border);border-radius:20px;overflow:hidden;backdrop-filter:blur(20px);transition:transform .35s ease,box-shadow .35s ease,border-color .35s;cursor:none;transform-style:preserve-3d}
+.farm-nft-card:hover{transform:translateY(-10px);box-shadow:0 40px 80px rgba(0,0,0,.6),0 0 50px rgba(0,255,135,.1);border-color:rgba(0,255,135,.3)}
+.nft-header{position:relative;height:180px;background:#010e05;overflow:hidden}
+.nft-header svg{position:absolute;inset:0;width:100%;height:100%}
+.nft-header-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(2,8,4,.95) 100%)}
+.nft-top-badges{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center}
+.nft-id{font-family:'Cabinet Grotesk',sans-serif;font-size:.6rem;font-weight:800;letter-spacing:.1em;color:var(--g1);background:rgba(0,255,135,.12);border:1px solid rgba(0,255,135,.3);padding:3px 9px;border-radius:5px;text-transform:uppercase}
+.nft-status{font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:5px;display:flex;align-items:center;gap:4px}
+.nft-status.live{background:var(--g1);color:#000}
+.nft-status.filling{background:var(--gold);color:#000}
+.nft-status.soon{background:rgba(255,255,255,.1);color:var(--muted)}
+.status-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:livePulse 1.2s infinite}
+.nft-bottom-info{position:absolute;bottom:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-end}
+.nft-coords{font-family:'Courier New',monospace;font-size:.55rem;color:rgba(0,255,135,.45);letter-spacing:.04em}
+.nft-ha{font-family:'Cabinet Grotesk',sans-serif;font-size:.65rem;font-weight:800;color:var(--gold);background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);padding:2px 7px;border-radius:5px}
+.nft-body{padding:1.1rem}
+.nft-name{font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:.95rem;margin-bottom:.75rem;line-height:1.2;letter-spacing:-.01em}
+.nft-data{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.75rem}
+.nft-cell{background:rgba(0,255,135,.03);border:1px solid var(--border);border-radius:7px;padding:.45rem .6rem}
+.nft-val{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.85rem;line-height:1}
+.nft-val.g{color:var(--g1)}
+.nft-val.a{color:var(--gold)}
+.nft-lbl{font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px}
+.nft-prog{height:3px;background:rgba(0,255,135,.08);border-radius:100px;overflow:hidden;margin-bottom:.4rem}
+.nft-prog-fill{height:100%;background:linear-gradient(90deg,var(--g1),var(--gold));border-radius:100px}
+.nft-prog-meta{display:flex;justify-content:space-between;font-size:.6rem;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;color:var(--muted);margin-bottom:.85rem}
+.nft-prog-meta .pct{color:var(--g1)}
+.nft-divider{height:1px;background:var(--border);margin-bottom:.85rem}
+.nft-btn{width:100%;padding:.72rem;background:linear-gradient(135deg,rgba(0,255,135,.08),rgba(0,255,135,.04));border:1px solid rgba(0,255,135,.2);color:var(--g1);border-radius:9px;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.8rem;cursor:none;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:7px}
+.nft-btn:hover{background:var(--g1);color:#000;box-shadow:0 0 20px rgba(0,255,135,.25)}
+.nft-btn:disabled{opacity:.3;cursor:not-allowed}
+.nft-chain{display:flex;align-items:center;gap:5px;font-size:.58rem;color:var(--muted);margin-top:.6rem;font-family:'Cabinet Grotesk',sans-serif;font-weight:600;letter-spacing:.06em;text-transform:uppercase;justify-content:center}
+.sol-dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,#9945ff,#14f195)}
+
+/* ECOSYSTEM */
+.eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:3rem}
+.eco-card{background:var(--glass);border:1px solid var(--border);border-radius:18px;padding:1.75rem;backdrop-filter:blur(20px);position:relative;overflow:hidden;transition:all .3s;cursor:none}
+.eco-card::before{content:'';position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 50% 0%,rgba(0,255,135,.07),transparent 70%);transition:opacity .3s}
+.eco-card:hover{border-color:rgba(0,255,135,.25);transform:translateY(-4px)}
+.eco-card:hover::before{opacity:1}
+.eco-num{font-family:'Cabinet Grotesk',sans-serif;font-size:3.5rem;font-weight:900;color:rgba(0,255,135,.05);line-height:1;position:absolute;top:.75rem;right:1.25rem;letter-spacing:-.05em}
+.eco-icon{width:46px;height:46px;border-radius:12px;background:rgba(0,255,135,.07);border:1px solid rgba(0,255,135,.14);display:flex;align-items:center;justify-content:center;margin-bottom:1.1rem}
+.eco-icon svg{width:22px;height:22px}
+.eco-card h3{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem;margin-bottom:.45rem;letter-spacing:-.01em}
+.eco-card p{font-size:.82rem;color:var(--muted);line-height:1.65}
+
+/* TOKENOMICS */
+.token-section{background:rgba(0,255,135,.015);border-top:1px solid var(--border)}
+.token-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;margin-top:3rem}
+.distro-item{display:flex;align-items:center;gap:12px;padding:.65rem 0;border-bottom:1px solid var(--border)}
+.distro-item:last-child{border-bottom:none}
+.distro-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.distro-label{font-size:.875rem;color:var(--muted);flex:1}
+.distro-track{width:55px;height:3px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden}
+.distro-fill{height:100%;border-radius:100px}
+.distro-pct{font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:.875rem;min-width:32px;text-align:right}
+.token-visual{background:var(--glass);border:1px solid var(--border);border-radius:20px;padding:2rem;backdrop-filter:blur(20px);text-align:center}
+.token-visual canvas{max-width:260px;margin:0 auto}
+.token-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--gold),#d97706);color:#000;padding:.85rem 1.75rem;border-radius:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.88rem;border:none;cursor:none;transition:all .25s;margin-top:1.5rem;text-decoration:none}
+.token-btn:hover{opacity:.88;transform:translateY(-1px)}
+
+/* ROADMAP */
+.road-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-top:3rem;position:relative}
+.road-grid::before{content:'';position:absolute;top:28px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--g1),transparent)}
+.road-card{background:var(--glass);border:1px solid var(--border);border-radius:18px;padding:1.5rem;text-align:center;backdrop-filter:blur(20px);position:relative;transition:all .3s}
+.road-card:hover{border-color:rgba(0,255,135,.3);transform:translateY(-4px)}
+.road-phase{width:56px;height:56px;border-radius:50%;border:2px solid var(--g1);color:var(--g1);display:flex;align-items:center;justify-content:center;font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:1rem;margin:0 auto 1rem;background:var(--black);position:relative;z-index:1}
+.road-card.active .road-phase{background:var(--g1);color:#000;box-shadow:0 0 30px rgba(0,255,135,.4)}
+.road-card h3{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.9rem;margin-bottom:.5rem}
+.road-card p{font-size:.78rem;color:var(--muted);line-height:1.6}
+.road-tag{display:inline-block;margin-top:.75rem;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:99px;background:rgba(0,255,135,.1);color:var(--g1);border:1px solid rgba(0,255,135,.2)}
+.road-tag.done{background:rgba(0,255,135,.2)}
+.road-tag.active-tag{background:var(--g1);color:#000}
+
+/* DISCORD BANNER */
+.discord-banner{padding:4rem 3rem;position:relative;z-index:2;background:rgba(0,255,135,.012);border-top:1px solid var(--border)}
+.discord-inner{max-width:800px;margin:0 auto;background:linear-gradient(135deg,rgba(0,255,135,.07),rgba(240,192,64,.03));border:1px solid rgba(0,255,135,.22);border-radius:22px;padding:2.5rem;text-align:center}
+.discord-inner h2{font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:1.6rem;margin-bottom:.7rem;letter-spacing:-.03em}
+.discord-inner p{font-size:.9rem;color:var(--muted);max-width:500px;margin:0 auto 1.75rem;line-height:1.75;font-weight:300}
+.discord-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--g1);color:#000;padding:.85rem 1.75rem;border-radius:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.9rem;border:none;cursor:none;transition:all .25s;box-shadow:0 0 24px rgba(0,255,135,.22);text-decoration:none}
+.btn-primary:hover{background:#00e578;transform:translateY(-1px);box-shadow:0 0 40px rgba(0,255,135,.4)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text);padding:.85rem 1.75rem;border-radius:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:.9rem;border:1px solid var(--border);cursor:none;transition:all .25s}
+.btn-secondary:hover{border-color:var(--g1);color:var(--g1)}
+
+/* FOOTER */
+footer{padding:3rem;background:rgba(2,8,4,.98);border-top:1px solid var(--border);position:relative;z-index:2}
+.footer-inner{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:3rem;padding-bottom:2.5rem;border-bottom:1px solid var(--border)}
+.footer-logo{display:flex;align-items:center;gap:10px;font-family:'Cabinet Grotesk',sans-serif;font-weight:900;font-size:1.1rem;margin-bottom:.75rem}
+.footer-logo img{width:28px;height:28px;border-radius:7px;object-fit:contain}
+.footer-desc{font-size:.82rem;color:var(--muted);line-height:1.65;max-width:220px}
+.footer-col h4{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--g1);font-weight:700;margin-bottom:1rem}
+.footer-col ul{display:flex;flex-direction:column;gap:.6rem;list-style:none}
+.footer-col ul a{font-size:.82rem;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-col ul a:hover{color:var(--text)}
+.footer-bottom{max-width:1300px;margin:1.5rem auto 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.footer-copy{font-size:.75rem;color:var(--muted)}
+.footer-dex{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--gold),#d97706);color:#000;padding:.5rem 1.2rem;border-radius:8px;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;font-size:.78rem;text-decoration:none;transition:opacity .2s}
+.footer-dex:hover{opacity:.88}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal{background:#060f08;border:1px solid var(--border);border-radius:20px;width:100%;max-width:420px;overflow:hidden;transform:translateY(16px) scale(.97);transition:transform .25s}
+.modal-overlay.open .modal{transform:translateY(0) scale(1)}
+.modal-header{padding:1.4rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:1rem}
+.modal-close{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:none;transition:all .2s}
+.modal-close:hover{border-color:#ff4d6d;color:#ff4d6d}
+.modal-body{padding:1.4rem}
+.wallet-opt{display:flex;align-items:center;gap:14px;padding:.9rem 1.1rem;border:1px solid var(--border);border-radius:12px;margin-bottom:.65rem;cursor:none;transition:all .2s}
+.wallet-opt:hover{border-color:var(--g1);background:rgba(0,255,135,.04)}
+.wallet-opt:last-child{margin-bottom:0}
+.w-icon{width:42px;height:42px;border-radius:10px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05)}
+.w-icon svg{width:28px;height:28px}
+.w-name{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.9rem;margin-bottom:1px}
+.w-desc{font-size:.72rem;color:var(--muted)}
+.w-detected{font-size:.6rem;font-weight:700;color:var(--g1);background:rgba(0,255,135,.1);border:1px solid rgba(0,255,135,.2);padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;margin-left:auto}
+.w-arrow{margin-left:auto;color:var(--muted)}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;max-width:300px}
+.toast{display:flex;align-items:flex-start;gap:10px;background:#0a1a0e;border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;box-shadow:0 8px 32px rgba(0,0,0,.5);transform:translateX(120%);transition:transform .3s ease}
+.toast.show{transform:translateX(0)}
+.toast.success{border-color:rgba(0,255,135,.35)}
+.toast.error{border-color:rgba(255,77,109,.35)}
+.toast.info{border-color:rgba(77,159,255,.35)}
+.toast-icon{font-size:.9rem;flex-shrink:0;margin-top:1px}
+.toast-body{flex:1}
+.toast-title{font-weight:700;font-size:.82rem;margin-bottom:1px;font-family:'Cabinet Grotesk',sans-serif}
+.toast-msg{font-size:.72rem;color:var(--muted);line-height:1.4}
+
+/* SCROLL IND */
+.scroll-ind{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:10;opacity:.65;animation:fadeUp 1s 1s ease both}
+.scroll-line{width:1px;height:44px;background:linear-gradient(180deg,var(--g1),transparent);animation:scrollA 1.5s ease-in-out infinite}
+@keyframes scrollA{0%{transform:scaleY(1);transform-origin:top}50%{transform:scaleY(0);transform-origin:top}50.1%{transform:scaleY(0);transform-origin:bottom}100%{transform:scaleY(1);transform-origin:bottom}}
+.scroll-txt{font-size:.58rem;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)}
+
+/* ANIM */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* RESPONSIVE */
+@media(max-width:960px){
+  .hero-inner,.token-grid{grid-template-columns:1fr;gap:2rem}
+  .hero-visuals{grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1.5rem}
+  #earthCanvas,#coinCanvas{height:200px}
+  .fc-top,.fc-mid,.fc-coin{display:none}
+  .hero-orb{width:300px;height:300px;right:-15%}
+  .eco-grid,.farm-grid{grid-template-columns:1fr}
+  .tvl-grid,.road-grid{grid-template-columns:1fr 1fr}
+  .footer-inner{grid-template-columns:1fr 1fr;gap:2rem}
+  nav ul.nav-links{display:none}
+  .mode-selector{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .hero-visuals{grid-template-columns:1fr 1fr}
+  #earthCanvas,#coinCanvas{height:160px}
+  .tvl-grid{grid-template-columns:1fr 1fr}
+  .road-grid,.footer-inner{grid-template-columns:1fr}
+  section{padding:4rem 1.5rem}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-trail" id="cursorTrail"></div>
+<canvas id="bgCanvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <img src="assets/logo.png" alt="AgricFi" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="nav-logo-orb" style="display:none">AF</div>
+    AgricFi
+  </div>
+  <ul class="nav-links">
+    <li><a href="#farms">Farms</a></li>
+    <li><a href="#ecosystem">Ecosystem</a></li>
+    <li><a href="#token">Token</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="investor.html">Investor</a></li>
+    <li><a href="farmer.html">Farmer</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="addr-chip" id="addrChip" onclick="copyWalletAddress()" title="Copy address">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span id="addrText"></span>
+    </div>
+    <button class="btn-wallet" id="btnWallet" onclick="openWalletModal()">
+      <span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
+        Connect Wallet
+      </span>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-orb"></div>
+  <div class="hero-inner">
+
+    <!-- Left: Text + Mode Selector -->
+    <div>
+      <div class="eyebrow"><div class="eyebrow-dot"></div>Real World Agriculture · Solana Blockchain</div>
+      <h1>
+        <span class="line1">Fund Real</span>
+        <span class="line2">Farms.</span>
+        <span class="line3">Earn Real Yield.</span>
+      </h1>
+      <p class="hero-sub">AgricFi tokenizes verified farmland on Solana — giving global investors direct exposure to African agriculture with on-chain transparency and automated harvest returns.</p>
+
+      <!-- Mode Selector -->
+      <div class="mode-selector">
+        <div class="mode-card inv" onclick="enterMode('investor')">
+          <div class="mode-icon i">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#00ff87" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="mode-title">I'm an Investor</div>
+          <div class="mode-desc">Browse farms, invest with SOL, earn yield and hold Farm NFTs</div>
+          <svg class="mode-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+        <div class="mode-card far" onclick="enterMode('farmer')">
+          <div class="mode-icon f">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div class="mode-title">I'm a Farmer</div>
+          <div class="mode-desc">List your farm, pass KYC, raise capital from global investors</div>
+          <svg class="mode-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-num" data-count="2847293" data-prefix="$">$0</div><div class="hero-stat-lbl">Total Raised</div></div>
+        <div class="hero-stat"><div class="hero-stat-num" data-count="142" data-suffix="+">0</div><div class="hero-stat-lbl">Investors</div></div>
+        <div class="hero-stat"><div class="hero-stat-num" data-count="22" data-suffix="%">0%</div><div class="hero-stat-lbl">Avg. APY</div></div>
+      </div>
+    </div>
+
+    <!-- Right: Earth + Coin -->
+    <div class="hero-visuals">
+      <div class="earth-scene">
+        <canvas id="earthCanvas"></canvas>
+        <div class="floating-card fc-top"><div class="fc-label">Farm Locations</div><div class="fc-value green">Nigeria · W. Africa</div><div class="fc-sub">3 Active Sites</div></div>
+        <div class="floating-card fc-mid"><div class="fc-label">Avg. Yield</div><div class="fc-value gold">18–25%</div><div class="fc-sub"><span class="fc-badge">LIVE</span> per annum</div></div>
+      </div>
+      <div class="coin-scene">
+        <div class="coin-rings"><div class="ring"></div><div class="ring"></div></div>
+        <canvas id="coinCanvas"></canvas>
+        <div class="floating-card fc-coin"><div class="fc-label">$AFT Token</div><div class="fc-value green">+12.4%</div><div class="fc-sub">24h · Solana SPL</div></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="scroll-ind"><div class="scroll-txt">Scroll</div><div class="scroll-line"></div></div>
+</section>
+
+<!-- TVL -->
+<div class="tvl-section">
+  <div class="tvl-grid">
+    <div class="tvl-item reveal"><div class="tvl-num" data-count="2847293" data-prefix="$">$0</div><div class="tvl-lbl">Total Value Raised</div></div>
+    <div class="tvl-item reveal"><div class="tvl-num" data-count="142" data-suffix="+">0</div><div class="tvl-lbl">Active Investors</div></div>
+    <div class="tvl-item reveal"><div class="tvl-num" data-count="8" data-suffix=" Farms">0</div><div class="tvl-lbl">Tokenized Farms</div></div>
+    <div class="tvl-item reveal"><div class="tvl-num" data-count="98" data-suffix="%">0</div><div class="tvl-lbl">Avg. Funding Rate</div></div>
+  </div>
+</div>
+
+<!-- FARM NFT CARDS -->
+<section id="farms">
+  <div class="sec-inner">
+    <span class="sec-tag">Farm Title Certificates · On-Chain</span>
+    <h2 class="sec-title reveal">Tokenized Farms.<br>Real Returns.</h2>
+    <p class="sec-sub reveal">Every farm is verified on-ground, IoT-monitored, and issued as a Solana NFT title certificate. Invest in fractions. Earn from harvests.</p>
+    <div class="farm-grid">
+
+      <!-- FARM 1: Maize Ogun -->
+      <div class="farm-nft-card reveal">
+        <div class="nft-header">
+          <svg viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="h1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#001a08"/><stop offset="100%" stop-color="#003318"/></linearGradient></defs><rect width="400" height="180" fill="url(#h1)"/><path d="M20,90 Q80,55 140,85 Q200,115 260,75 Q320,35 390,60" fill="none" stroke="rgba(0,255,135,.14)" stroke-width="1"/><path d="M20,105 Q80,70 140,100 Q200,130 260,90 Q320,50 390,75" fill="none" stroke="rgba(0,255,135,.09)" stroke-width="1"/><path d="M20,75 Q80,40 140,70 Q200,100 260,60 Q320,20 390,45" fill="none" stroke="rgba(0,255,135,.07)" stroke-width="1"/><line x1="0" y1="45" x2="400" y2="45" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="0" y1="90" x2="400" y2="90" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="0" y1="135" x2="400" y2="135" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="100" y1="0" x2="100" y2="180" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="200" y1="0" x2="200" y2="180" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><line x1="300" y1="0" x2="300" y2="180" stroke="rgba(0,255,135,.04)" stroke-width=".5"/><polygon points="80,35 200,25 315,52 338,122 215,142 80,138 55,95" fill="rgba(0,255,135,.06)" stroke="rgba(0,255,135,.38)" stroke-width="1.5" stroke-dasharray="6,3"/><circle cx="195" cy="88" r="4" fill="#00ff87" opacity=".9"/><circle cx="195" cy="88" r="9" fill="none" stroke="rgba(0,255,135,.45)" stroke-width="1"/><circle cx="195" cy="88" r="16" fill="none" stroke="rgba(0,255,135,.2)" stroke-width="1"/><circle cx="80" cy="35" r="2.5" fill="rgba(240,192,64,.8)"/><circle cx="200" cy="25" r="2.5" fill="rgba(240,192,64,.8)"/><circle cx="315" cy="52" r="2.5" fill="rgba(240,192,64,.8)"/><circle cx="338" cy="122" r="2.5" fill="rgba(240,192,64,.8)"/><text x="200" y="170" text-anchor="middle" fill="rgba(0,255,135,.08)" font-family="'Courier New',monospace" font-size="8" letter-spacing="3">AGF-OGN-001-2026</text></svg>
+          <div class="nft-header-overlay"></div>
+          <div class="nft-top-badges"><span class="nft-id">NFT #001</span><span class="nft-status live"><span class="status-dot"></span>Live</span></div>
+          <div class="nft-bottom-info"><span class="nft-coords">6.8672° N, 3.4432° E</span><span class="nft-ha">50 Ha</span></div>
+        </div>
+        <div class="nft-body">
+          <div class="nft-name">Maize Farm — Ogun State</div>
+          <div class="nft-data"><div class="nft-cell"><div class="nft-val g">18–25%</div><div class="nft-lbl">Est. ROI</div></div><div class="nft-cell"><div class="nft-val a">$40,000</div><div class="nft-lbl">Target</div></div><div class="nft-cell"><div class="nft-val">Q3 2026</div><div class="nft-lbl">Harvest</div></div><div class="nft-cell"><div class="nft-val g">Active</div><div class="nft-lbl">IoT</div></div></div>
+          <div class="nft-prog"><div class="nft-prog-fill" style="width:72%"></div></div>
+          <div class="nft-prog-meta"><span class="pct">72% Funded</span><span>$28,800 / $40,000</span></div>
+          <div class="nft-divider"></div>
+          <button class="nft-btn" onclick="enterMode('investor')">Invest with SOL</button>
+          <div class="nft-chain"><div class="sol-dot"></div>Verified on Solana Devnet</div>
+        </div>
+      </div>
+
+      <!-- FARM 2: Rice Kebbi -->
+      <div class="farm-nft-card reveal">
+        <div class="nft-header">
+          <svg viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="h2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0d1800"/><stop offset="100%" stop-color="#1a2e00"/></linearGradient></defs><rect width="400" height="180" fill="url(#h2)"/><path d="M20,75 Q100,45 180,80 Q250,112 320,68 Q362,45 392,62" fill="none" stroke="rgba(240,192,64,.14)" stroke-width="1"/><path d="M20,90 Q100,60 180,95 Q250,128 320,83 Q362,60 392,77" fill="none" stroke="rgba(240,192,64,.1)" stroke-width="1"/><path d="M20,60 Q100,30 180,65 Q250,97 320,53 Q362,30 392,47" fill="none" stroke="rgba(240,192,64,.07)" stroke-width="1"/><line x1="0" y1="45" x2="400" y2="45" stroke="rgba(240,192,64,.04)" stroke-width=".5"/><line x1="0" y1="90" x2="400" y2="90" stroke="rgba(240,192,64,.04)" stroke-width=".5"/><line x1="0" y1="135" x2="400" y2="135" stroke="rgba(240,192,64,.04)" stroke-width=".5"/><line x1="100" y1="0" x2="100" y2="180" stroke="rgba(240,192,64,.04)" stroke-width=".5"/><line x1="200" y1="0" x2="200" y2="180" stroke="rgba(240,192,64,.04)" stroke-width=".5"/><line x1="300" y1="0" x2="300" y2="180" stroke="rgba(240,192,64,.04)" stroke-width=".5"/><polygon points="58,30 222,22 365,52 372,142 228,158 78,152 48,98" fill="rgba(240,192,64,.05)" stroke="rgba(240,192,64,.42)" stroke-width="1.5" stroke-dasharray="6,3"/><circle cx="210" cy="90" r="4" fill="#f0c040" opacity=".9"/><circle cx="210" cy="90" r="9" fill="none" stroke="rgba(240,192,64,.45)" stroke-width="1"/><circle cx="210" cy="90" r="16" fill="none" stroke="rgba(240,192,64,.2)" stroke-width="1"/><circle cx="58" cy="30" r="2.5" fill="rgba(0,255,135,.8)"/><circle cx="365" cy="52" r="2.5" fill="rgba(0,255,135,.8)"/><text x="200" y="170" text-anchor="middle" fill="rgba(240,192,64,.08)" font-family="'Courier New',monospace" font-size="8" letter-spacing="3">AGF-KEB-002-2026</text></svg>
+          <div class="nft-header-overlay"></div>
+          <div class="nft-top-badges"><span class="nft-id">NFT #002</span><span class="nft-status filling"><span class="status-dot"></span>Filling</span></div>
+          <div class="nft-bottom-info"><span class="nft-coords">12.4539° N, 4.1975° E</span><span class="nft-ha">80 Ha</span></div>
+        </div>
+        <div class="nft-body">
+          <div class="nft-name">Rice Farm — Kebbi State</div>
+          <div class="nft-data"><div class="nft-cell"><div class="nft-val g">20–28%</div><div class="nft-lbl">Est. ROI</div></div><div class="nft-cell"><div class="nft-val a">$65,000</div><div class="nft-lbl">Target</div></div><div class="nft-cell"><div class="nft-val">Q4 2026</div><div class="nft-lbl">Harvest</div></div><div class="nft-cell"><div class="nft-val g">Active</div><div class="nft-lbl">IoT</div></div></div>
+          <div class="nft-prog"><div class="nft-prog-fill" style="width:45%"></div></div>
+          <div class="nft-prog-meta"><span class="pct">45% Funded</span><span>$29,250 / $65,000</span></div>
+          <div class="nft-divider"></div>
+          <button class="nft-btn" onclick="enterMode('investor')">Invest with SOL</button>
+          <div class="nft-chain"><div class="sol-dot"></div>Verified on Solana Devnet</div>
+        </div>
+      </div>
+
+      <!-- FARM 3: Cassava Benue -->
+      <div class="farm-nft-card reveal">
+        <div class="nft-header">
+          <svg viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="h3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0a0a14"/><stop offset="100%" stop-color="#141428"/></linearGradient></defs><rect width="400" height="180" fill="url(#h3)"/><path d="M20,85 Q90,52 160,90 Q230,125 300,82 Q352,52 392,72" fill="none" stroke="rgba(100,100,255,.1)" stroke-width="1"/><path d="M20,100 Q90,67 160,105 Q230,140 300,97 Q352,67 392,87" fill="none" stroke="rgba(100,100,255,.07)" stroke-width="1"/><line x1="0" y1="45" x2="400" y2="45" stroke="rgba(150,150,255,.04)" stroke-width=".5"/><line x1="0" y1="90" x2="400" y2="90" stroke="rgba(150,150,255,.04)" stroke-width=".5"/><line x1="100" y1="0" x2="100" y2="180" stroke="rgba(150,150,255,.04)" stroke-width=".5"/><line x1="200" y1="0" x2="200" y2="180" stroke="rgba(150,150,255,.04)" stroke-width=".5"/><line x1="300" y1="0" x2="300" y2="180" stroke="rgba(150,150,255,.04)" stroke-width=".5"/><polygon points="90,45 212,32 332,60 352,138 222,155 90,150 65,102" fill="rgba(150,150,255,.04)" stroke="rgba(150,150,255,.22)" stroke-width="1.5" stroke-dasharray="6,3"/><rect x="186" y="80" width="24" height="18" rx="3" fill="none" stroke="rgba(150,150,255,.28)" stroke-width="1.5"/><path d="M191,80 L191,76 Q191,69 198,69 Q205,69 205,76 L205,80" fill="none" stroke="rgba(150,150,255,.28)" stroke-width="1.5"/><circle cx="198" cy="90" r="2.5" fill="rgba(150,150,255,.4)"/><text x="200" y="170" text-anchor="middle" fill="rgba(150,150,255,.08)" font-family="'Courier New',monospace" font-size="8" letter-spacing="3">AGF-BNU-003-2026</text></svg>
+          <div class="nft-header-overlay"></div>
+          <div class="nft-top-badges"><span class="nft-id">NFT #003</span><span class="nft-status soon">Coming Soon</span></div>
+          <div class="nft-bottom-info"><span class="nft-coords">7.3376° N, 8.8953° E</span><span class="nft-ha">30 Ha</span></div>
+        </div>
+        <div class="nft-body">
+          <div class="nft-name">Cassava Farm — Benue State</div>
+          <div class="nft-data"><div class="nft-cell"><div class="nft-val g">15–22%</div><div class="nft-lbl">Est. ROI</div></div><div class="nft-cell"><div class="nft-val a">$35,000</div><div class="nft-lbl">Target</div></div><div class="nft-cell"><div class="nft-val" style="color:var(--muted)">TBA 2026</div><div class="nft-lbl">Harvest</div></div><div class="nft-cell"><div class="nft-val" style="color:var(--muted)">Pending</div><div class="nft-lbl">IoT</div></div></div>
+          <div class="nft-prog"><div class="nft-prog-fill" style="width:0%"></div></div>
+          <div class="nft-prog-meta"><span style="color:var(--muted)">Whitelist Opening</span><span>—</span></div>
+          <div class="nft-divider"></div>
+          <button class="nft-btn" disabled>Whitelist Opening Soon</button>
+          <div class="nft-chain"><div class="sol-dot"></div>Pending Solana Verification</div>
+        </div>
+      </div>
+
+    </div>
+    <div style="text-align:center;margin-top:2.5rem"><a href="investor.html" class="btn-secondary" style="font-size:.82rem;padding:.65rem 1.5rem">View All 8 Farms</a></div>
+  </div>
+</section>
+
+<!-- ECOSYSTEM -->
+<section id="ecosystem" style="background:rgba(0,255,135,.012);border-top:1px solid var(--border)">
+  <div class="sec-inner">
+    <span class="sec-tag">Ecosystem Modules</span>
+    <h2 class="sec-title reveal">Built for the Future<br>of Real World Assets</h2>
+    <p class="sec-sub reveal">Six interconnected modules powering the AgricFi ecosystem — from farm verification to automated yield distribution on Solana.</p>
+    <div class="eco-grid">
+      <div class="eco-card reveal"><div class="eco-num">01</div><div class="eco-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#00ff87" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><path d="M5 12H2m20 0h-3M12 2v3m0 14v3"/></svg></div><h3>DeFi Funding Hub</h3><p>Decentralized pooling of global capital for verified African farms. On-chain escrow, dynamic APYs based on harvest performance.</p></div>
+      <div class="eco-card reveal"><div class="eco-num">02</div><div class="eco-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#00ff87" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><h3>Sustainability Ledger</h3><p>Proof-of-impact layer recording carbon credits and farm sustainability data immutably on-chain.</p></div>
+      <div class="eco-card reveal" style="border-color:rgba(240,192,64,.12)"><div class="eco-num" style="color:rgba(240,192,64,.05)">03</div><div class="eco-icon" style="background:rgba(240,192,64,.07);border-color:rgba(240,192,64,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="3"/></svg></div><h3>$AFT Token</h3><p>Native Solana SPL token powering governance, staking, marketplace fees and automated reward distribution.</p></div>
+      <div class="eco-card reveal"><div class="eco-num">04</div><div class="eco-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#00ff87" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h3>Yield Dashboard</h3><p>Real-time IoT data, on-chain analytics, and portfolio performance tracking in one premium investor interface.</p></div>
+      <div class="eco-card reveal"><div class="eco-num">05</div><div class="eco-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#00ff87" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><h3>Farm Title NFTs</h3><p>Each farm issued as a Metaplex NFT on Solana with GPS coordinates, fractional co-ownership and satellite verification.</p></div>
+      <div class="eco-card reveal" style="border-color:rgba(240,192,64,.12)"><div class="eco-num" style="color:rgba(240,192,64,.05)">06</div><div class="eco-icon" style="background:rgba(240,192,64,.07);border-color:rgba(240,192,64,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div><h3>Marketplace</h3><p>Trade farm title NFTs, produce tokens, and carbon credits in a live, secure, on-chain marketplace.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TOKENOMICS -->
+<section id="token" class="token-section">
+  <div class="sec-inner">
+    <span class="sec-tag">Tokenomics</span>
+    <h2 class="sec-title reveal">AgricFi Token — AFT</h2>
+    <p class="sec-sub reveal">Fixed supply Solana SPL token powering every layer of the AgricFi ecosystem — from staking to governance to marketplace fees.</p>
+    <div class="token-grid">
+      <div class="reveal">
+        <h3 style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:1.25rem">Token Distribution</h3>
+        <div class="distro-item"><div class="distro-dot" style="background:#00ff87"></div><span class="distro-label">Public Sale</span><div class="distro-track"><div class="distro-fill" style="background:#00ff87;width:25%"></div></div><span class="distro-pct" style="color:#00ff87">25%</span></div>
+        <div class="distro-item"><div class="distro-dot" style="background:#f0c040"></div><span class="distro-label">Staking Rewards</span><div class="distro-track"><div class="distro-fill" style="background:#f0c040;width:20%"></div></div><span class="distro-pct" style="color:#f0c040">20%</span></div>
+        <div class="distro-item"><div class="distro-dot" style="background:#4ade80"></div><span class="distro-label">Ecosystem Growth</span><div class="distro-track"><div class="distro-fill" style="background:#4ade80;width:20%"></div></div><span class="distro-pct" style="color:#4ade80">20%</span></div>
+        <div class="distro-item"><div class="distro-dot" style="background:#86efac"></div><span class="distro-label">Team & Advisors (vested)</span><div class="distro-track"><div class="distro-fill" style="background:#86efac;width:15%"></div></div><span class="distro-pct" style="color:#86efac">15%</span></div>
+        <div class="distro-item"><div class="distro-dot" style="background:#fbbf24"></div><span class="distro-label">Liquidity Pool</span><div class="distro-track"><div class="distro-fill" style="background:#fbbf24;width:10%"></div></div><span class="distro-pct" style="color:#fbbf24">10%</span></div>
+        <div class="distro-item"><div class="distro-dot" style="background:#4b7a5c"></div><span class="distro-label">Strategic Partnerships</span><div class="distro-track"><div class="distro-fill" style="background:#4b7a5c;width:10%"></div></div><span class="distro-pct" style="color:#4b7a5c">10%</span></div>
+        <a href="https://l1xapp.com/pool/details/0x8f4932931AE141B3d8eB9630B35824053ca44945" target="_blank" class="token-btn" style="margin-top:1.5rem">Buy AFT on Quantum DEX</a>
+      </div>
+      <div class="token-visual reveal">
+        <h3 style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem;margin-bottom:1.25rem">Distribution</h3>
+        <canvas id="tokenChart" style="max-width:220px;margin:0 auto"></canvas>
+        <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:.5rem">
+          <div style="background:rgba(0,255,135,.04);border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px">Token Mechanics</div><div style="font-size:.78rem;color:var(--text);line-height:1.6;font-weight:300">Fees partially burned. Staking tiers reduce supply. NFTs provide utility sinks.</div></div>
+          <div style="background:rgba(240,192,64,.03);border:1px solid rgba(240,192,64,.12);border-radius:10px;padding:.8rem 1rem"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px">Governance</div><div style="font-size:.78rem;color:var(--text);line-height:1.6;font-weight:300">AFT holders vote on farm listings, platform upgrades and treasury.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="sec-inner">
+    <span class="sec-tag">Roadmap</span>
+    <h2 class="sec-title reveal">The Path Forward</h2>
+    <p class="sec-sub reveal">From pilot farm to a continent-wide agricultural finance network on Solana.</p>
+    <div class="road-grid">
+      <div class="road-card reveal"><div class="road-phase">1</div><h3>Foundation</h3><p>Research, system design, pilot farm onboarding, smart contract architecture on Solana.</p><span class="road-tag done">Completed</span></div>
+      <div class="road-card active reveal"><div class="road-phase">2</div><h3>MVP Launch</h3><p>Launch DApp with real farms, Phantom wallet, $AFT token on devnet, investor onboarding.</p><span class="road-tag active-tag">In Progress</span></div>
+      <div class="road-card reveal"><div class="road-phase">3</div><h3>Scale</h3><p>Expand farm listings, full IoT integration, Metaplex NFT marketplace, carbon credit trading.</p><span class="road-tag">Q3 2026</span></div>
+      <div class="road-card reveal"><div class="road-phase">4</div><h3>Global</h3><p>Expand across Africa and global markets. Multi-chain bridge, institutional rails, DAO governance.</p><span class="road-tag">Q1 2027</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- DISCORD BANNER -->
+<div class="discord-banner">
+  <div class="discord-inner">
+    <h2>Get Free Devnet SOL to Start Testing</h2>
+    <p>Join the AgricFi Discord, submit your Solana wallet address in the <strong style="color:var(--g1)">#get-test-sol</strong> channel, and our bot will automatically send you devnet SOL to start investing in tokenized farms.</p>
+    <div class="discord-btns">
+      <a href="https://discord.gg/DG9QVxb8TU" target="_blank" class="btn-primary">Join Discord Server</a>
+      <button class="btn-secondary" onclick="openWalletModal()">Connect Wallet</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo"><img src="assets/logo.png" alt="AgricFi" onerror="this.style.display='none'">AgricFi</div>
+      <p class="footer-desc">Bridging agriculture and blockchain to create transparent, profitable, and sustainable agricultural finance on Solana.</p>
+    </div>
+    <div class="footer-col"><h4>App</h4><ul><li><a href="investor.html">Investor Portal</a></li><li><a href="farmer.html">Farmer Portal</a></li><li><a href="#farms">Browse Farms</a></li><li><a href="#token">Tokenomics</a></li><li><a href="#roadmap">Roadmap</a></li></ul></div>
+    <div class="footer-col"><h4>Resources</h4><ul><li><a href="https://docs.google.com/document/d/1R0Q1ln7vIYJuEMs8EWc9p7lKFdGOHvRuISeCP33uVi8" target="_blank">Whitepaper</a></li><li><a href="https://l1xapp.com/pool/details/0x8f4932931AE141B3d8eB9630B35824053ca44945" target="_blank">Buy AFT</a></li><li><a href="https://agricfi.xyz" target="_blank">Main Website</a></li></ul></div>
+    <div class="footer-col"><h4>Community</h4><ul><li><a href="https://t.me/AgricFi" target="_blank">Telegram</a></li><li><a href="https://x.com/agric_fi" target="_blank">Twitter / X</a></li><li><a href="https://medium.com/@agricfi" target="_blank">Medium</a></li><li><a href="https://discord.gg/DG9QVxb8TU" target="_blank">Discord</a></li><li><a href="https://facebook.com/profile.php?id=61580356123160" target="_blank">Facebook</a></li></ul></div>
+  </div>
+  <div class="footer-bottom">
+    <p class="footer-copy">2026 AgricFi · Built on Solana · MVP v1 · Devnet</p>
+    <a href="https://l1xapp.com/pool/details/0x8f4932931AE141B3d8eB9630B35824053ca44945" target="_blank" class="footer-dex">Buy AFT on Quantum DEX</a>
+  </div>
+</footer>
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay" id="walletModal" onclick="if(event.target===this)closeWalletModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Connect Wallet</span>
+      <button class="modal-close" onclick="closeWalletModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.1rem;font-weight:300">Choose your Solana wallet. Your session stays active until you disconnect.</p>
+      <div id="walletOpts"></div>
+      <p style="font-size:.68rem;color:var(--muted);margin-top:1rem;text-align:center;line-height:1.5">Solana Devnet · MVP Testing Mode Only</p>
+    </div>
+  </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── CURSOR
+const cur=document.getElementById('cursor'),trail=document.getElementById('cursorTrail');
+let mx=0,my=0,tx=0,ty=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+setInterval(()=>{tx+=(mx-tx)*.12;ty+=(my-ty)*.12;trail.style.left=tx+'px';trail.style.top=ty+'px';},16);
+document.querySelectorAll('button,a,.farm-nft-card,.eco-card,.mode-card,.road-card,.wallet-opt').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='20px';cur.style.height='20px';trail.style.width='60px';trail.style.height='60px';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='12px';cur.style.height='12px';trail.style.width='36px';trail.style.height='36px';});
+});
+
+// ── PARTICLES
+const bgC=document.getElementById('bgCanvas'),bgX=bgC.getContext('2d');
+function rBg(){bgC.width=window.innerWidth;bgC.height=window.innerHeight;}
+rBg();window.addEventListener('resize',rBg);
+const pts=Array.from({length:120},()=>({x:Math.random()*bgC.width,y:Math.random()*bgC.height,r:Math.random()*1.3+.3,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random()*.38+.08,c:Math.random()>.75?'#f0c040':'#00ff87'}));
+(function ap(){
+  bgX.clearRect(0,0,bgC.width,bgC.height);
+  pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=bgC.width;if(p.x>bgC.width)p.x=0;if(p.y<0)p.y=bgC.height;if(p.y>bgC.height)p.y=0;bgX.beginPath();bgX.arc(p.x,p.y,p.r,0,Math.PI*2);bgX.fillStyle=p.c;bgX.globalAlpha=p.a;bgX.fill();});
+  bgX.globalAlpha=1;
+  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<88){bgX.beginPath();bgX.moveTo(pts[i].x,pts[i].y);bgX.lineTo(pts[j].x,pts[j].y);bgX.strokeStyle=`rgba(0,255,135,${.048*(1-d/88)})`;bgX.lineWidth=.5;bgX.stroke();}}
+  requestAnimationFrame(ap);
+})();
+
+// ── 3D EARTH
+(function(){
+  const canvas=document.getElementById('earthCanvas');
+  if(!canvas||!window.THREE)return;
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(canvas.offsetWidth,canvas.offsetHeight);
+  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(40,canvas.offsetWidth/canvas.offsetHeight,.1,100);
+  camera.position.set(0,0,6);
+  const tc=document.createElement('canvas');tc.width=2048;tc.height=1024;
+  const tx=tc.getContext('2d');
+  tx.fillStyle='#010e05';tx.fillRect(0,0,2048,1024);
+  tx.strokeStyle='rgba(0,255,135,0.055)';tx.lineWidth=0.8;
+  for(let lo=-180;lo<=180;lo+=30){const x=(lo+180)/360*2048;tx.beginPath();tx.moveTo(x,0);tx.lineTo(x,1024);tx.stroke();}
+  for(let la=-90;la<=90;la+=30){const y=(90-la)/180*1024;tx.beginPath();tx.moveTo(0,y);tx.lineTo(2048,y);tx.stroke();}
+  function ll(lo,la){return[(lo+180)/360*2048,(90-la)/180*1024];}
+  function land(pts,fc,sc,lw){tx.beginPath();tx.moveTo(...ll(pts[0][0],pts[0][1]));pts.slice(1).forEach(p=>tx.lineTo(...ll(p[0],p[1])));tx.closePath();tx.fillStyle=fc;tx.fill();tx.strokeStyle=sc;tx.lineWidth=lw;tx.stroke();}
+  land([[20,37],[28,35],[35,30],[38,22],[42,12],[44,8],[42,2],[40,-5],[38,-12],[36,-18],[34,-25],[30,-30],[26,-34],[20,-35],[16,-30],[14,-24],[12,-18],[10,-5],[8,5],[5,10],[2,6],[-2,5],[-5,10],[-8,15],[-12,20],[-16,25],[-18,28],[-16,33],[-10,36],[-5,37],[5,37],[10,38],[20,37]],'rgba(0,255,135,.16)','rgba(0,255,135,.55)',2);
+  land([[-10,36],[0,36],[10,38],[20,38],[28,38],[30,42],[28,46],[22,50],[15,54],[5,58],[0,60],[-8,52],[-10,48],[-8,44],[-10,36]],'rgba(0,255,135,.07)','rgba(0,255,135,.18)',1);
+  land([[30,42],[50,30],[70,20],[90,22],[110,18],[130,30],[135,35],[130,40],[100,55],[70,46],[40,45],[30,42]],'rgba(0,255,135,.06)','rgba(0,255,135,.15)',1);
+  land([[-65,45],[-55,50],[-55,55],[-80,70],[-120,65],[-130,55],[-120,38],[-100,22],[-80,18],[-68,35],[-65,45]],'rgba(0,255,135,.06)','rgba(0,255,135,.14)',1);
+  land([[-35,-5],[-45,-15],[-52,-25],[-50,-30],[-55,-45],[-65,-45],[-70,-10],[-65,0],[-50,5],[-35,-5]],'rgba(0,255,135,.06)','rgba(0,255,135,.13)',1);
+  land([[114,-22],[130,-15],[140,-18],[148,-35],[135,-38],[120,-28],[114,-22]],'rgba(0,255,135,.06)','rgba(0,255,135,.13)',1);
+  [[3.4,6.9],[4.2,12.5],[8.9,7.3]].forEach(pin=>{
+    const[x,y]=ll(pin[0],pin[1]);
+    const g=tx.createRadialGradient(x,y,0,x,y,24);g.addColorStop(0,'rgba(0,255,135,.75)');g.addColorStop(.5,'rgba(0,255,135,.22)');g.addColorStop(1,'transparent');
+    tx.beginPath();tx.arc(x,y,24,0,Math.PI*2);tx.fillStyle=g;tx.fill();
+    tx.beginPath();tx.arc(x,y,5,0,Math.PI*2);tx.fillStyle='#00ff87';tx.fill();
+    tx.beginPath();tx.arc(x,y,10,0,Math.PI*2);tx.strokeStyle='rgba(0,255,135,.8)';tx.lineWidth=2;tx.stroke();
+  });
+  const earthTex=new THREE.CanvasTexture(tc);
+  const earth=new THREE.Mesh(new THREE.SphereGeometry(2.2,64,64),new THREE.MeshStandardMaterial({map:earthTex,metalness:.1,roughness:.8,emissive:new THREE.Color(0x001a08),emissiveIntensity:.5}));
+  scene.add(earth);
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(2.35,64,64),new THREE.MeshBasicMaterial({color:0x00ff87,transparent:true,opacity:.04,side:THREE.BackSide})));
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(2.55,32,32),new THREE.MeshBasicMaterial({color:0x00ff87,transparent:true,opacity:.015,side:THREE.BackSide})));
+  const pins=[];
+  [[0.21,0.26,2.18],[0.25,0.47,2.15],[0.34,0.28,2.16]].forEach(pos=>{
+    const m=new THREE.Mesh(new THREE.SphereGeometry(.055,12,12),new THREE.MeshBasicMaterial({color:0x00ff87}));m.position.set(...pos);scene.add(m);
+    const r=new THREE.Mesh(new THREE.TorusGeometry(.11,.012,8,32),new THREE.MeshBasicMaterial({color:0x00ff87,transparent:true,opacity:.6}));r.position.set(...pos);scene.add(r);
+    pins.push({m,r});
+  });
+  scene.add(new THREE.AmbientLight(0xffffff,.4));
+  const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(5,3,5);scene.add(sun);
+  const gl=new THREE.PointLight(0x00ff87,1.5,20);gl.position.set(-4,2,3);scene.add(gl);
+  let emx=0,emy=0;
+  document.addEventListener('mousemove',e=>{emx=(e.clientX/window.innerWidth-.5)*.5;emy=(e.clientY/window.innerHeight-.5)*.3;});
+  const clk=new THREE.Clock();
+  (function anim(){requestAnimationFrame(anim);const t=clk.getElapsedTime();earth.rotation.y=t*.12+emx;earth.rotation.x=emy*.3;pins.forEach((p,i)=>{const s=1+Math.sin(t*2+i*1.2)*.35;p.r.scale.set(s,s,s);p.r.material.opacity=.22+Math.sin(t*2+i*1.2)*.3;});gl.position.x=Math.sin(t*.5)*5;renderer.render(scene,camera);})();
+  window.addEventListener('resize',()=>{renderer.setSize(canvas.offsetWidth,canvas.offsetHeight);camera.aspect=canvas.offsetWidth/canvas.offsetHeight;camera.updateProjectionMatrix();});
+})();
+
+// ── 3D COIN
+(function(){
+  const canvas=document.getElementById('coinCanvas');
+  if(!canvas||!window.THREE)return;
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(canvas.offsetWidth,canvas.offsetHeight);
+  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(45,canvas.offsetWidth/canvas.offsetHeight,.1,100);
+  camera.position.set(0,0,5);
+  const fc=document.createElement('canvas');fc.width=512;fc.height=512;
+  const fx=fc.getContext('2d');const faceTex=new THREE.CanvasTexture(fc);
+  function drawFace(logo){
+    fx.clearRect(0,0,512,512);
+    const g=fx.createRadialGradient(256,256,0,256,256,256);g.addColorStop(0,'#005530');g.addColorStop(.6,'#002d18');g.addColorStop(1,'#001008');
+    fx.fillStyle=g;fx.beginPath();fx.arc(256,256,256,0,Math.PI*2);fx.fill();
+    fx.beginPath();fx.arc(256,256,246,0,Math.PI*2);fx.strokeStyle='rgba(0,255,135,.5)';fx.lineWidth=4;fx.stroke();
+    for(let i=0;i<36;i++){const a=(i/36)*Math.PI*2;fx.beginPath();fx.arc(256+Math.cos(a)*220,256+Math.sin(a)*220,3.5,0,Math.PI*2);fx.fillStyle=i%3===0?'rgba(240,192,64,.95)':'rgba(0,255,135,.4)';fx.fill();}
+    if(logo)fx.drawImage(logo,256-110,256-120,220,220);
+    fx.font='bold 44px Arial';fx.fillStyle='rgba(240,192,64,.92)';fx.textAlign='center';fx.fillText('$AFT',256,432);
+    faceTex.needsUpdate=true;
+  }
+  drawFace(null);
+  const img=new Image();img.onload=()=>drawFace(img);img.src='assets/logo.png';
+  const coinMats=[new THREE.MeshStandardMaterial({color:0xd4a017,metalness:1,roughness:.1}),new THREE.MeshStandardMaterial({map:faceTex,metalness:.3,roughness:.4}),new THREE.MeshStandardMaterial({map:faceTex,metalness:.3,roughness:.4})];
+  const coin=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.18,64),coinMats);coin.rotation.x=Math.PI/2;scene.add(coin);
+  const edge=new THREE.Mesh(new THREE.TorusGeometry(1.8,.06,16,64),new THREE.MeshStandardMaterial({color:0xf0c040,metalness:1,roughness:.05}));scene.add(edge);
+  const orbs=[];
+  for(let i=0;i<44;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(.025,4,4),new THREE.MeshBasicMaterial({color:Math.random()>.5?0x00ff87:0xf0c040,transparent:true,opacity:Math.random()*.6+.2}));const a=Math.random()*Math.PI*2,r=2.2+Math.random()*1.1,h=(Math.random()-.5)*1.8;p.userData={a,r,s:(Math.random()*.008+.003)*(Math.random()>.5?1:-1),h};scene.add(p);orbs.push(p);}
+  scene.add(new THREE.AmbientLight(0xffffff,.3));
+  const l1=new THREE.PointLight(0x00ff87,3,20);l1.position.set(3,3,3);scene.add(l1);
+  const l2=new THREE.PointLight(0xf0c040,2,20);l2.position.set(-3,-2,2);scene.add(l2);
+  const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(0,5,5);scene.add(dl);
+  let cmx=0,cmy=0;
+  document.addEventListener('mousemove',e=>{cmx=(e.clientX/window.innerWidth-.5)*2;cmy=(e.clientY/window.innerHeight-.5)*2;});
+  const clk2=new THREE.Clock();
+  (function anim(){requestAnimationFrame(anim);const t=clk2.getElapsedTime();coin.rotation.y=t*.6+cmx*.5;coin.rotation.x=Math.PI/2+cmy*.2;edge.rotation.y=t*.6+cmx*.5;edge.rotation.x=cmy*.2;orbs.forEach(p=>{p.userData.a+=p.userData.s;p.position.set(Math.cos(p.userData.a)*p.userData.r,p.userData.h+Math.sin(t*.5+p.userData.a)*.3,Math.sin(p.userData.a)*p.userData.r);});l1.position.x=Math.sin(t*.7)*4;l1.position.y=Math.cos(t*.5)*3;renderer.render(scene,camera);})();
+  window.addEventListener('resize',()=>{renderer.setSize(canvas.offsetWidth,canvas.offsetHeight);camera.aspect=canvas.offsetWidth/canvas.offsetHeight;camera.updateProjectionMatrix();});
+})();
+
+// ── TOKEN CHART
+if(window.Chart){
+  new Chart(document.getElementById('tokenChart').getContext('2d'),{type:'doughnut',data:{labels:['Public Sale','Staking','Ecosystem','Team','Liquidity','Partnerships'],datasets:[{data:[25,20,20,15,10,10],backgroundColor:['#00ff87','#f0c040','#4ade80','#86efac','#fbbf24','#4b7a5c'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'72%',plugins:{legend:{position:'bottom',labels:{color:'#4a8a5c',font:{size:10},padding:12}}}}});
+}
+
+// ── COUNTERS
+const cObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){const el=e.target,target=parseFloat(el.dataset.count),prefix=el.dataset.prefix||'',suffix=el.dataset.suffix||'',dur=2000,start=performance.now(),big=target>999;(function up(now){const p=Math.min((now-start)/dur,1),ease=1-Math.pow(1-p,3),cur=target*ease;el.textContent=prefix+(big?Math.floor(cur).toLocaleString():Math.floor(cur))+suffix;if(p<1)requestAnimationFrame(up);})(start);cObs.unobserve(e.target);}});},{threshold:.5});
+document.querySelectorAll('[data-count]').forEach(el=>cObs.observe(el));
+
+// ── REVEAL
+const rObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>rObs.observe(el));
+
+// ── CARD TILT
+document.querySelectorAll('.farm-nft-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,cx=r.width/2,cy=r.height/2;card.style.transform=`translateY(-10px) rotateX(${((y-cy)/cy)*-5}deg) rotateY(${((x-cx)/cx)*5}deg)`;});
+  card.addEventListener('mouseleave',()=>{card.style.transform='';});
+});
+
+// ── WALLET SYSTEM
+const WALLET_KEY='agricfi_wallet_v1';
+let _walletState={connected:false,address:null,name:null,provider:null};
+
+function detectWallets(){
+  const w=[];
+  if(window.solana?.isPhantom)   w.push({id:'phantom',  name:'Phantom',  desc:'Most popular Solana wallet', p:window.solana});
+  if(window.solflare?.isSolflare)w.push({id:'solflare', name:'Solflare', desc:'Secure multi-asset wallet',    p:window.solflare});
+  if(window.backpack)            w.push({id:'backpack',  name:'Backpack', desc:'Multi-chain wallet by Coral',  p:window.backpack});
+  return w;
+}
+
+function buildWalletOptions(){
+  const installed=detectWallets().map(w=>w.id);
+  const ALL=[
+    {id:'phantom', name:'Phantom', desc:'Most popular Solana wallet'},
+    {id:'solflare',name:'Solflare',desc:'Secure multi-asset Solana wallet'},
+    {id:'backpack', name:'Backpack',desc:'Multi-chain wallet by Coral'},
+  ];
+  return ALL.map(w=>{
+    const det=installed.includes(w.id);
+    const icons={
+      phantom:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#ab9ff2"/><path d="M32 20.5c0 6.627-5.373 12-12 12s-12-5.373-12-12 5.373-12 12-12 12 5.373 12 12zm-7-.5c0-2.761-2.239-5-5-5s-5 2.239-5 5 2.239 5 5 5 5-2.239 5-5z" fill="white"/></svg>`,
+      solflare:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#FC8800"/><path d="M20 8l10 12-10 12-10-12z" fill="white" opacity=".9"/></svg>`,
+      backpack:`<svg width="28" height="28" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#E33E3F"/><path d="M12 16h16v16H12z M16 16V12a4 4 0 018 0v4" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
+    };
+    return`<div class="wallet-opt" onclick="connectWallet('${w.id}')"><div class="w-icon">${icons[w.id]||''}</div><div><div class="w-name">${w.name}</div><div class="w-desc">${w.desc}</div></div>${det?'<span class="w-detected">Detected</span>':'<svg class="w-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'}</div>`;
+  }).join('');
+}
+
+function openWalletModal(){
+  document.getElementById('walletOpts').innerHTML=buildWalletOptions();
+  document.getElementById('walletModal').classList.add('open');
+}
+function closeWalletModal(){document.getElementById('walletModal').classList.remove('open');}
+
+async function connectWallet(id){
+  closeWalletModal();
+  const all=detectWallets();
+  const w=all.find(x=>x.id===id);
+  if(!w){
+    const urls={phantom:'https://phantom.app/',solflare:'https://solflare.com/',backpack:'https://backpack.app/'};
+    if(urls[id])window.open(urls[id],'_blank');
+    showToast('info','Wallet Not Found',`Install ${id} wallet then retry`);return;
+  }
+  showToast('info','Connecting...','Opening '+w.name);
+  try{
+    const resp=await w.p.connect();
+    const addr=resp.publicKey.toString();
+    _walletState={connected:true,address:addr,name:w.name,provider:w.p};
+    localStorage.setItem(WALLET_KEY,JSON.stringify({address:addr,name:w.name,walletId:id}));
+    updateWalletUI();
+    showToast('success','Wallet Connected',w.name+': '+fmtAddr(addr));
+    watchWallet();
+  }catch(e){
+    if(e.code===4001)showToast('info','Cancelled','Connection was cancelled');
+    else showToast('error','Connection Failed',e.message||'Please try again');
+  }
+}
+
+async function disconnectWallet(){
+  try{if(_walletState.provider?.disconnect)await _walletState.provider.disconnect();}catch(e){}
+  _walletState={connected:false,address:null,name:null,provider:null};
+  localStorage.removeItem(WALLET_KEY);
+  updateWalletUI();
+  showToast('info','Disconnected','Wallet disconnected');
+}
+
+async function restoreWallet(){
+  const s=localStorage.getItem(WALLET_KEY);
+  if(!s)return;
+  try{
+    const{address,name,walletId}=JSON.parse(s);
+    const all=detectWallets();
+    const w=all.find(x=>x.id===walletId);
+    if(!w)return;
+    if(w.p.isConnected&&w.p.publicKey){
+      _walletState={connected:true,address:w.p.publicKey.toString(),name,provider:w.p};
+      updateWalletUI();watchWallet();return;
+    }
+    try{const r=await w.p.connect({onlyIfTrusted:true});_walletState={connected:true,address:r.publicKey.toString(),name,provider:w.p};updateWalletUI();watchWallet();}catch(e){}
+  }catch(e){localStorage.removeItem(WALLET_KEY);}
+}
+
+function watchWallet(){
+  if(!_walletState.provider)return;
+  _walletState.provider.on?.('disconnect',()=>{_walletState={connected:false,address:null,name:null,provider:null};localStorage.removeItem(WALLET_KEY);updateWalletUI();showToast('info','Disconnected','Wallet session ended');});
+  _walletState.provider.on?.('accountChanged',pk=>{if(pk){_walletState.address=pk.toString();updateWalletUI();}else{disconnectWallet();}});
+}
+
+function updateWalletUI(){
+  const btn=document.getElementById('btnWallet');
+  const chip=document.getElementById('addrChip');
+  const addrTxt=document.getElementById('addrText');
+  if(!btn)return;
+  if(_walletState.connected){
+    btn.className='btn-wallet connected';
+    btn.innerHTML=`<span><span class="w-dot"></span>${fmtAddr(_walletState.address)}</span>`;
+    btn.onclick=()=>disconnectWallet();
+    btn.title='Click to disconnect';
+    if(chip){chip.style.display='flex';if(addrTxt)addrTxt.textContent=fmtAddr(_walletState.address);}
+  }else{
+    btn.className='btn-wallet';
+    btn.innerHTML=`<span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>Connect Wallet</span>`;
+    btn.onclick=()=>openWalletModal();
+    if(chip)chip.style.display='none';
+  }
+  // Update farm invest buttons
+  document.querySelectorAll('.nft-btn:not([disabled])').forEach(b=>{
+    if(!_walletState.connected)b.textContent='Connect Wallet to Invest';
+  });
+}
+
+async function copyWalletAddress(){
+  if(!_walletState.address)return;
+  try{await navigator.clipboard.writeText(_walletState.address);showToast('success','Copied!','Wallet address copied to clipboard');}
+  catch(e){showToast('error','Failed','Could not copy address');}
+}
+
+function fmtAddr(a){if(!a)return'';return a.slice(0,4)+'...'+a.slice(-4);}
+
+// ── MODE ENTRY
+window._pendingMode=null;
+function enterMode(mode){
+  if(!_walletState.connected){
+    window._pendingMode=mode;
+    openWalletModal();
+    // Override connect to redirect after
+    const orig=connectWallet;
+    window._origConnect=orig;
+    return;
+  }
+  window.location.href=mode==='investor'?'investor.html':'farmer.html';
+}
+
+// After wallet connect, redirect if pending
+const _origConnectWallet=connectWallet;
+window.connectWallet=async function(id){
+  await _origConnectWallet(id);
+  if(window._pendingMode&&_walletState.connected){
+    setTimeout(()=>{window.location.href=window._pendingMode==='investor'?'investor.html':'farmer.html';window._pendingMode=null;},900);
+  }
+};
+
+// ── TOAST
+function showToast(type,title,msg,dur=4000){
+  const c=document.getElementById('toastContainer');
+  const icons={success:'✓',error:'✕',info:'i',warning:'!'};
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span class="toast-icon">${icons[type]||'i'}</span><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  c.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},dur);
+}
+
+// ── INIT
+window.addEventListener('load',()=>{restoreWallet();});
+</script>
+</body>
+</html>
