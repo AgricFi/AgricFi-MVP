@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 
-/* ── RESET & BASE ── */
+/* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
@@ -8,21 +8,21 @@ html { scroll-behavior: smooth; }
   --bg:        #020804;
   --bg-mid:    #060f08;
   --bg-card:   rgba(8,24,12,0.75);
+  --bg-dark:   rgba(4,12,6,0.92);
   --green:     #00ff87;
   --green-dim: #00cc6a;
   --gold:      #f0c040;
-  --gold-dim:  #c8a030;
   --red:       #ff4d6d;
   --blue:      #4d9fff;
   --text:      #e8fef0;
   --muted:     #4a8a5c;
   --dim:       #1e3a28;
   --border:    rgba(0,255,135,0.12);
-  --border-h:  rgba(0,255,135,0.3);
-  --shadow:    0 8px 32px rgba(0,0,0,0.5);
+  --border-h:  rgba(0,255,135,0.30);
   --r:         12px;
-  --rl:        18px;
-  --tr:        0.22s ease;
+  --rl:        16px;
+  --nav-h:     70px; /* INCREASED slightly to fix header vertical spacing */
+  --side-w:    220px;
 }
 
 body {
@@ -32,101 +32,117 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  min-height: 100vh;
 }
 
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image:
-    linear-gradient(rgba(0,255,135,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,135,0.025) 1px, transparent 1px);
-  background-size: 60px 60px;
+/* FIX FOR CHOPPED HEADS ON TITLES */
+h1, h2, h3, h4, h5 { 
+  font-family: 'Cabinet Grotesk', sans-serif; 
+  line-height: 1.35 !important; /* Forces vertical room for bold letters */
+  letter-spacing: -0.02em; 
+  margin-bottom: 0.5rem;
 }
 
-h1,h2,h3,h4,h5 { font-family: 'Cabinet Grotesk', sans-serif; line-height: 1.15; letter-spacing: -0.02em; }
-a { text-decoration: none; color: inherit; }
-img { max-width: 100%; display: block; }
-button { cursor: pointer; }
-input, select, textarea { font-family: 'DM Sans', sans-serif; }
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: rgba(0,255,135,0.2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,255,135,0.4); }
-
-/* ── NAV ── */
-.nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  background: rgba(2,8,4,0.92);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 2rem;
-  height: 64px;
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-}
-.nav-left { display: flex; align-items: center; gap: 12px; }
-.nav-logo { width: 34px; height: 34px; border-radius: 8px; object-fit: contain; }
-.nav-brand {
-  font-family: 'Cabinet Grotesk', sans-serif;
-  font-weight: 900; font-size: 1.15rem; letter-spacing: -0.02em;
+/* ══════════════════════════════════════════
+   APP LAYOUT (sidebar + main)
+══════════════════════════════════════════ */
+.app-layout {
+  display: grid;
+  /* FIX: minmax(0, 1fr) stops the content from pushing off the screen */
+  grid-template-columns: var(--side-w) minmax(0, 1fr);
+  min-height: calc(100vh - var(--nav-h));
+  padding-top: var(--nav-h);
 }
 
-.nav-center { display: flex; gap: 0.25rem; }
-.nav-link {
-  font-size: 0.8rem; font-weight: 500; color: var(--muted);
-  padding: 0.4rem 0.85rem; border-radius: 8px;
-  transition: var(--tr); letter-spacing: 0.01em;
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed;
+  top: var(--nav-h);
+  left: 0;
+  width: var(--side-w);
+  height: calc(100vh - var(--nav-h));
+  background: var(--bg-dark);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 0 2rem;
 }
-.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-.nav-link.active { color: var(--green); background: rgba(0,255,135,0.08); }
 
-.nav-right { display: flex; align-items: center; gap: 0.75rem; }
-
-/* ── BUTTONS ── */
-.btn-primary {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--green); color: #000;
-  padding: 0.8rem 1.75rem; border-radius: var(--r);
-  font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800;
-  font-size: 0.9rem; border: none; transition: var(--tr);
-  box-shadow: 0 0 24px rgba(0,255,135,0.2);
+/* ── MAIN CONTENT FIX ── */
+.main-content {
+  grid-column: 2;
+  /* Added more top padding (2.5rem) to lower the content slightly */
+  padding: 2.5rem 2.25rem 5rem 2.25rem; 
+  background: var(--bg-mid);
+  min-height: calc(100vh - var(--nav-h));
+  position: relative; 
+  z-index: 1;
+  min-width: 0; /* Prevents layout blowout */
+  overflow-x: hidden;
 }
-.btn-primary:hover { background: #00e578; transform: translateY(-1px); box-shadow: 0 0 36px rgba(0,255,135,0.35); }
 
-/* ── SECTION LAYOUT ── */
-.page-wrapper { padding-top: 64px; min-height: 100vh; position: relative; z-index: 1; }
-.page-content { max-width: 1280px; margin: 0 auto; padding: 2rem; }
-
-/* Grid layouts */
-.stats-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.5rem; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-
-/* ── FARM CARDS ── */
-.farm-card {
+/* ══════════════════════════════════════════
+   CARDS & GRIDS
+══════════════════════════════════════════ */
+.card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--rl);
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
   backdrop-filter: blur(12px);
-}
-.farm-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 30px rgba(0,255,135,0.08);
-  border-color: var(--border-h);
+  transition: border-color 0.2s;
+  padding: 1.5rem;
 }
 
-.farm-card-body { padding: 1.1rem; }
-.farm-name { font-family: 'Cabinet Grotesk', sans-serif; font-weight: 900; font-size: 0.95rem; margin-bottom: 0.75rem; letter-spacing: -0.01em; line-height: 1.2; }
+/* Fix for the side-by-side cards (Invest / List) */
+.grid-2 { 
+  display: grid; 
+  grid-template-columns: repeat(2, 1fr); 
+  gap: 1.5rem; 
+  margin-bottom: 1.5rem; 
+}
 
-/* ── RESPONSIVE ── */
+.stats4 { 
+  display: grid; 
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 1.25rem; 
+  margin-bottom: 1.75rem; 
+}
+
+/* ══════════════════════════════════════════
+   NAV & BUTTONS (Retaining your original logic)
+══════════════════════════════════════════ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+  height: var(--nav-h);
+  background: rgba(2,8,4,0.94);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 1.5rem;
+  gap: 0.75rem;
+}
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--green); color: #000;
+  padding: 0.75rem 1.6rem; border-radius: var(--r);
+  font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800;
+  font-size: 0.88rem; border: none; transition: all 0.22s;
+  box-shadow: 0 0 20px rgba(0,255,135,0.18);
+}
+
+/* ── RESPONSIVE FIXES ── */
 @media (max-width: 1024px) {
-  .stats-grid-4 { grid-template-columns: repeat(2,1fr); }
-}
-@media (max-width: 768px) {
-  .nav-center { display: none; }
-  .page-content { padding: 1.25rem; }
+  .stats4 { grid-template-columns: 1fr 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .app-layout { display: block; }
+  .sidebar { display: none; }
+  .main-content { 
+    width: 100%; 
+    padding: 1.5rem; 
+  }
 }
