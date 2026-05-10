@@ -1,4 +1,3 @@
-cat > /home/claude/agricfi-mvp/style.css << 'ENDCSS'
 @import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 
 /* ── RESET ── */
@@ -145,7 +144,8 @@ ul { list-style: none; }
 ══════════════════════════════════════════ */
 .app-layout {
   display: grid;
-  grid-template-columns: var(--side-w) 1fr;
+  /* FIX: Changed 1fr to minmax(0, 1fr) to prevent content from expanding beyond the track */
+  grid-template-columns: var(--side-w) minmax(0, 1fr);
   min-height: calc(100vh - var(--nav-h));
   padding-top: var(--nav-h);
 }
@@ -214,7 +214,8 @@ ul { list-style: none; }
   background: var(--bg-mid);
   min-height: calc(100vh - var(--nav-h));
   position: relative; z-index: 1;
-  width: 100%;
+  /* FIX: Removed width: 100% and added min-width: 0 to keep layout within viewport bounds */
+  min-width: 0;
   overflow-x: hidden;
 }
 
@@ -715,6 +716,8 @@ ul { list-style: none; }
 
   /* Main — full width */
   .main-content {
+    /* FIX: Width was fine here but min-width: 0 added for safety */
+    min-width: 0;
     width: 100%;
     padding: 1.1rem;
     min-height: calc(100vh - var(--nav-h));
