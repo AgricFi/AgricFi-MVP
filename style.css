@@ -463,6 +463,10 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 .reveal { opacity:0; transform:translateY(16px); transition: opacity .5s ease, transform .5s ease; }
 .reveal.visible { opacity:1; transform:translateY(0); }
 
+.ph {
+  padding-top: 20px;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
   .stats-grid-4 { grid-template-columns: repeat(2,1fr); }
