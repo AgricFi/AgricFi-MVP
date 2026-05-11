@@ -493,8 +493,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   .data-table th, .data-table td { padding: 0.65rem 0.75rem; }
 }
 @media (max-width: 480px) {
-  .stats-grid-4, .stats-grid-3 {
-    grid-template-columns: 1fr;
+  .stats-grid-4, .stats-grid-3 { grid-template-columns: 1fr; }
+  .nav { padding: 0 1rem; }
 }
-
 
