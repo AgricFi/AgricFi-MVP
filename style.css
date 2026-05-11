@@ -169,6 +169,10 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   font-size: 0.9rem;
   border: none;
   transition: var(--tr);
+
+  position: relative;
+  top: 16px;
+  z-index: 20;
 }
 .btn-gold:hover { background: #f5cc50; transform: translateY(-1px); }
 
