@@ -1,0 +1,40 @@
+{
+  "name": "agricfi-mvp",
+  "version": "1.0.0",
+  "description": "AgricFi MVP — Multi-chain agricultural investment platform with Solana wallet support",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "npx http-server -c-1 -o",
+    "serve": "npx http-server -p 8000",
+    "build": "npm run bundle",
+    "bundle": "npx esbuild wallet-adapter.js --bundle --outfile=dist/wallet-adapter.bundle.js"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.91.1",
+    "@solana/wallet-adapter-base": "^0.9.23",
+    "@solana/wallet-adapter-phantom": "^0.9.24",
+    "@solana/wallet-adapter-solflare": "^0.6.8",
+    "@solana/wallet-adapter-backpack": "^0.1.3",
+    "@solana/wallet-adapter-glow": "^0.2.1",
+    "@solana/wallet-adapter-walletconnect": "^0.1.7"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "esbuild": "^0.19.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "solana",
+    "wallet",
+    "adapter",
+    "agriculture",
+    "investment",
+    "blockchain"
+  ],
+  "author": "AgricFi",
+  "license": "MIT"
+}
