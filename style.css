@@ -171,7 +171,7 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   transition: var(--tr);
 
   position: relative;
-  top: 16px;
+  top: 24px;
   z-index: 20;
 }
 .btn-gold:hover { background: #f5cc50; transform: translateY(-1px); }
