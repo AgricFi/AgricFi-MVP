@@ -169,10 +169,6 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   font-size: 0.9rem;
   border: none;
   transition: var(--tr);
-
-  position: relative;
-  top: 24px;
-  z-index: 20;
 }
 .btn-gold:hover { background: #f5cc50; transform: translateY(-1px); }
 
@@ -493,7 +489,16 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   .data-table th, .data-table td { padding: 0.65rem 0.75rem; }
 }
 @media (max-width: 480px) {
-  .stats-grid-4, .stats-grid-3 { grid-template-columns: 1fr; }
-  .nav { padding: 0 1rem; }
+  .stats-grid-4, .stats-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .nav {
+    padding: 0 1rem;
+  }
+
+  .btn-gold {
+    margin-top: 20px;
+  }
 }
 
