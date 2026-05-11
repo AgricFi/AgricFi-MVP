@@ -160,19 +160,24 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
+
   background: var(--gold);
   color: #000;
+
   padding: 0.8rem 1.75rem;
   border-radius: var(--r);
+
   font-family: 'Cabinet Grotesk', sans-serif;
   font-weight: 800;
   font-size: 0.9rem;
+
   border: none;
   transition: var(--tr);
 
+  margin-top: 16px; /* replaces top: 16px */
   position: relative;
-  top: 24px;
-  z-index: 20;
+  z-index: 1;
+}
 }
 .btn-gold:hover { background: #f5cc50; transform: translateY(-1px); }
 
