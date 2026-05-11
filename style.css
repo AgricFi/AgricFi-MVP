@@ -157,11 +157,22 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 .btn-secondary:hover { border-color: var(--green); color: var(--green); }
 
 .btn-gold {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--gold); color: #000;
-  padding: 0.8rem 1.75rem; border-radius: var(--r);
-  font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800;
-  font-size: 0.9rem; border: none; transition: var(--tr);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gold);
+  color: #000;
+  padding: 0.8rem 1.75rem;
+  border-radius: var(--r);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 0.9rem;
+  border: none;
+  transition: var(--tr);
+
+  position: relative;
+  top: 16px;
+  z-index: 20;
 }
 .btn-gold:hover { background: #f5cc50; transform: translateY(-1px); }
 
