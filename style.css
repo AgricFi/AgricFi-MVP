@@ -494,6 +494,6 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
 }
 @media (max-width: 480px) {
   .stats-grid-4, .stats-grid-3 { grid-template-columns: 1fr; }
-  .nav { padding: 0 1rem; }
+  .nav { padding: 0.2rem; }
 }
 
