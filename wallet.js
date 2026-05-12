@@ -216,6 +216,14 @@ function closeWalletModal() {
 
 // Handle wallet selection
 async function handleWalletConnect(walletId) {
+  // --- MOBILE DEEP LINK LOGIC ---
+  if (walletId === 'phantom-mobile') {
+    closeWalletModal();
+    const cleanUrl = window.location.href.replace(/^https?:\/\//, '');
+    window.location.href = `https://phantom.app/ul/browse/${cleanUrl}`;
+    return; // Stop here and let the phone switch apps
+  }
+
   closeWalletModal();
   showToast('info', 'Connecting...', `Opening ${walletId} wallet`);
   const result = await WalletManager.connect(walletId);
