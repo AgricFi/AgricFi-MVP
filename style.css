@@ -521,3 +521,33 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
     justify-content: flex-start;
   }
 }
+
+/* --- WALLET MODAL MOBILE FIX --- */
+.wallet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.wallet-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wallet-item:hover {
+  background: var(--border);
+  border-color: var(--green);
+}
+
+.wallet-item span {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
