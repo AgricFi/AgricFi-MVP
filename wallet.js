@@ -28,23 +28,29 @@ const WalletManager = (function() {
 
   // ── Connect to a specific wallet provider
   async function connect(walletId) {
-    // --- MOBILE REDIRECT ADDITION ---
+    // 1. MOBILE REDIRECT (Fixes the loop by encoding the URL correctly)
     if (walletId === 'phantom-mobile') {
       const cleanUrl = window.location.href.split('#')[0]; 
-    const encodedUrl = encodeURIComponent(cleanUrl);
-    window.location.href = `https://phantom.app/ul/browse/${encodedUrl}?ref=${encodedUrl}`;
-      
-    // --- END MOBILE REDIRECT ---
+      const encodedUrl = encodeURIComponent(cleanUrl);
+      window.location.href = `https://phantom.app/ul/browse/${encodedUrl}?ref=${encodedUrl}`;
+      return { success: false, error: 'Redirecting to Phantom App...' };
+    }
 
     const all = detectWallets();
     const wallet = all.find(w => w.id === walletId);
 
-    // If wallet not installed, open install page
-    if (!/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-          const installUrls = { phantom: 'https://phantom.app/', solflare: 'https://solflare.com/' };
+    // 2. PC PROTECTION (Stop the download loop and fix connection)
+    if (!wallet || !wallet.provider) {
+      // ONLY open download page if NOT on mobile
+      if (!/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+          const installUrls = { 
+            phantom: 'https://phantom.app/', 
+            solflare: 'https://solflare.com/',
+            backpack: 'https://backpack.app/'
+          };
           if (installUrls[walletId]) window.open(installUrls[walletId], '_blank');
       }
-      return { success: false, error: 'Wallet not detected. Please unlock your extension.' };
+      return { success: false, error: 'Wallet extension not detected.' };
     }
 
     try {
@@ -77,12 +83,10 @@ const WalletManager = (function() {
       const wallet = all.find(w => w.id === walletId);
       if (!wallet) return false;
 
-      // Silently reconnect (no user prompt if already approved)
       if (wallet.provider.isConnected && wallet.provider.publicKey) {
         _state = { connected: true, address: wallet.provider.publicKey.toString(), provider: wallet.provider, name };
         return true;
       }
-      // Try eager connect (Phantom/Solflare support this)
       try {
         const resp = await wallet.provider.connect({ onlyIfTrusted: true });
         _state = { connected: true, address: resp.publicKey.toString(), provider: wallet.provider, name };
@@ -140,7 +144,6 @@ const WalletManager = (function() {
 
 // ── UI Helpers ──
 
-// Build wallet connect modal HTML
 function buildWalletModal() {
   const installed = WalletManager.detectWallets().map(w => w.id);
   const ALL_WALLETS = [
@@ -171,12 +174,10 @@ function buildWalletModal() {
   }).join('');
 }
 
-// Update all wallet UI elements on the page
 function updateWalletUI() {
   const state = WalletManager.getState();
   const btnWallet  = document.getElementById('btnWallet');
   const addrChip   = document.getElementById('addrChip');
-  const navSwitch  = document.getElementById('navSwitch');
 
   if (!btnWallet) return;
 
@@ -184,10 +185,10 @@ function updateWalletUI() {
     btnWallet.className = 'btn-wallet connected';
     btnWallet.innerHTML = `<span class="wallet-dot"></span>${WalletManager.formatAddress()}`;
     btnWallet.onclick = () => handleDisconnect();
-    btnWallet.title = 'Click to disconnect';
     if (addrChip) {
       addrChip.style.display = 'flex';
-      addrChip.querySelector('.addr-text').textContent = WalletManager.formatAddress();
+      const txt = addrChip.querySelector('.addr-text') || addrChip.querySelector('span');
+      if (txt) txt.textContent = WalletManager.formatAddress();
     }
   } else {
     btnWallet.className = 'btn-wallet';
@@ -197,11 +198,10 @@ function updateWalletUI() {
   }
 }
 
-// Open wallet modal
 function openWalletModal() {
   const modal = document.getElementById('walletModal');
   if (!modal) return;
-  const body = modal.querySelector('#walletOptions');
+  const body = document.getElementById('walletOptions');
   if (body) body.innerHTML = buildWalletModal();
   modal.classList.add('open');
 }
@@ -211,31 +211,25 @@ function closeWalletModal() {
   if (modal) modal.classList.remove('open');
 }
 
-// Handle wallet selection
 async function handleWalletConnect(walletId) {
-  // 1. MOBILE REDIRECT (Keep this for phone users)
+  // Mobile Redirect Logic
   if (walletId === 'phantom-mobile') {
     closeWalletModal();
-    const cleanUrl = window.location.href.split('#')[0];
-    const encodedUrl = encodeURIComponent(cleanUrl);
-    window.location.href = `https://phantom.app/ul/browse/${encodedUrl}?ref=${encodedUrl}`;
+    const cleanUrl = window.location.href.replace(/^https?:\/\//, '');
+    window.location.href = `https://phantom.app/ul/browse/${cleanUrl}`;
     return;
   }
 
-  // 2. PC CONNECTION (Fix for PC Extensions)
   closeWalletModal();
   showToast('info', 'Connecting...', `Opening ${walletId} wallet`);
-  
-  // Notice we call WalletManager.connect (the internal function)
-  const result = await WalletManager.connect(walletId); 
-  
+  const result = await WalletManager.connect(walletId);
   if (result.success) {
     showToast('success', 'Wallet Connected', `${result.name}: ${WalletManager.formatAddress(result.address)}`);
     updateWalletUI();
     WalletManager.watchChanges(() => { updateWalletUI(); });
     
-    // This triggers the Dashboard numbers and charts to appear
-    if (typeof onConnected === 'function') onConnected(); 
+    // Trigger dashboard updates if functions exist
+    if (typeof onConnected === 'function') onConnected();
     if (typeof onWalletConnected === 'function') onWalletConnected(result);
   } else {
     showToast('error', 'Connection Failed', result.error || 'Please try again');
@@ -254,7 +248,6 @@ async function copyWalletAddress() {
   if (ok) showToast('success', 'Copied!', 'Wallet address copied to clipboard');
 }
 
-// ── Toast notifications
 function showToast(type, title, msg, duration = 4000) {
   let container = document.getElementById('toastContainer');
   if (!container) {
@@ -280,7 +273,6 @@ function showToast(type, title, msg, duration = 4000) {
   }, duration);
 }
 
-// ── Particles background
 function initParticles(canvasId) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
@@ -304,17 +296,10 @@ function initParticles(canvasId) {
       ctx.fillStyle = p.c; ctx.globalAlpha = p.a; ctx.fill();
     });
     ctx.globalAlpha = 1;
-    for (let i = 0; i < pts.length; i++) {
-      for (let j = i+1; j < pts.length; j++) {
-        const dx = pts[i].x-pts[j].x, dy = pts[i].y-pts[j].y, d = Math.sqrt(dx*dx+dy*dy);
-        if (d < 80) { ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.strokeStyle=`rgba(0,255,135,${0.04*(1-d/80)})`; ctx.lineWidth=0.5; ctx.stroke(); }
-      }
-    }
     requestAnimationFrame(draw);
   })();
 }
 
-// ── Scroll reveal
 function initReveal() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
@@ -322,23 +307,21 @@ function initReveal() {
   document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 }
 
-// ── Animated counters
-function animateCounter(el, target, prefix='', suffix='', duration=1800) {
-  const start = performance.now();
-  const big = target > 999;
-  (function up(now) {
-    const p = Math.min((now-start)/duration, 1), ease = 1 - Math.pow(1-p, 3), cur = target * ease;
-    el.textContent = prefix + (big ? Math.floor(cur).toLocaleString() : parseFloat(cur.toFixed(1))) + suffix;
-    if (p < 1) requestAnimationFrame(up);
-  })(start);
-}
-
 function initCounters() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {
         const el = e.target;
-        animateCounter(el, parseFloat(el.dataset.count), el.dataset.prefix||'', el.dataset.suffix||'');
+        const target = parseFloat(el.dataset.count);
+        if (!isNaN(target)) {
+            const start = performance.now();
+            (function up(now) {
+                const p = Math.min((now-start)/1800, 1);
+                const cur = target * (1 - Math.pow(1-p, 3));
+                el.textContent = (el.dataset.prefix||'') + (target > 999 ? Math.floor(cur).toLocaleString() : parseFloat(cur.toFixed(1))) + (el.dataset.suffix||'');
+                if (p < 1) requestAnimationFrame(up);
+            })(start);
+        }
         obs.unobserve(el);
       }
     });
@@ -346,274 +329,7 @@ function initCounters() {
   document.querySelectorAll('[data-count]').forEach(el => obs.observe(el));
 }
 
-// ── Generate farm certificate SVG
-function farmCertSVG(farm) {
-  const isGreen = farm.color === 'green';
-  const c = isGreen ? '0,255,135' : farm.color === 'gold' ? '240,192,64' : '150,150,255';
-  return `<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-    <defs><linearGradient id="bg${farm.id}" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${isGreen?'#001a08':farm.color==='gold'?'#0d1800':'#0a0a14'}"/>
-      <stop offset="100%" stop-color="${isGreen?'#003318':farm.color==='gold'?'#1a2e00':'#141428'}"/>
-    </linearGradient></defs>
-    <rect width="400" height="160" fill="url(#bg${farm.id})"/>
-    <path d="M20,80 Q80,50 140,75 Q200,100 260,65 Q320,30 390,55" fill="none" stroke="rgba(${c},.12)" stroke-width="1"/>
-    <path d="M20,95 Q80,65 140,90 Q200,115 260,80 Q320,45 390,70" fill="none" stroke="rgba(${c},.08)" stroke-width="1"/>
-    <path d="M20,65 Q80,35 140,60 Q200,85 260,50 Q320,15 390,40" fill="none" stroke="rgba(${c},.07)" stroke-width="1"/>
-    <line x1="0" y1="40" x2="400" y2="40" stroke="rgba(${c},.03)" stroke-width=".5"/>
-    <line x1="0" y1="80" x2="400" y2="80" stroke="rgba(${c},.03)" stroke-width=".5"/>
-    <line x1="0" y1="120" x2="400" y2="120" stroke="rgba(${c},.03)" stroke-width=".5"/>
-    <line x1="100" y1="0" x2="100" y2="160" stroke="rgba(${c},.03)" stroke-width=".5"/>
-    <line x1="200" y1="0" x2="200" y2="160" stroke="rgba(${c},.03)" stroke-width=".5"/>
-    <line x1="300" y1="0" x2="300" y2="160" stroke="rgba(${c},.03)" stroke-width=".5"/>
-    <polygon points="70,30 190,20 320,45 340,115 215,135 80,130 55,85" fill="rgba(${c},.05)" stroke="rgba(${c},.35)" stroke-width="1.5" stroke-dasharray="6,3"/>
-    <circle cx="195" cy="78" r="4" fill="rgb(${c})" opacity=".9"/>
-    <circle cx="195" cy="78" r="9"  fill="none" stroke="rgba(${c},.45)" stroke-width="1"/>
-    <circle cx="195" cy="78" r="16" fill="none" stroke="rgba(${c},.2)"  stroke-width="1"/>
-    <text x="200" y="150" text-anchor="middle" fill="rgba(${c},.08)" font-family="'Courier New',monospace" font-size="8" letter-spacing="3">${farm.serial}</text>
-  </svg>`;
-}
-
-// ── Build farm card HTML
-function buildFarmCard(farm, showInvestBtn = true) {
-  const fundedPct = farm.target > 0 ? pct(farm.raised, farm.target) : 0;
-  const statusMap = { live: 'live', filling: 'filling', soon: 'soon' };
-  const statusLabel = { live: 'Live', filling: 'Filling', soon: 'Coming Soon' };
-  const valClass = farm.color === 'green' ? 'g' : farm.color === 'gold' ? 'a' : '';
-  const canInvest = farm.status !== 'soon' && WalletManager.isConnected();
-
-  return `
-  <div class="farm-card reveal">
-    <div class="farm-cert-header">
-      ${farmCertSVG(farm)}
-      <div class="farm-cert-overlay"></div>
-      <div class="farm-cert-badges">
-        <span class="farm-nft-id">NFT ${farm.nftId}</span>
-        <span class="farm-status-badge ${statusMap[farm.status]}">
-          ${farm.status !== 'soon' ? '<span class="status-dot"></span>' : ''}
-          ${statusLabel[farm.status]}
-        </span>
-      </div>
-      <div class="farm-cert-bottom">
-        <span class="farm-coords">${farm.coords}</span>
-        <span class="farm-ha-badge">${farm.size} Ha</span>
-      </div>
-    </div>
-    <div class="farm-card-body">
-      <div class="farm-name">${farm.name} — ${farm.location}</div>
-      <div class="farm-data-grid">
-        <div class="farm-data-cell"><div class="farm-data-val ${valClass}">${farm.roi.min}–${farm.roi.max}%</div><div class="farm-data-lbl">Est. ROI</div></div>
-        <div class="farm-data-cell"><div class="farm-data-val ${valClass}">$${farm.target.toLocaleString()}</div><div class="farm-data-lbl">Target</div></div>
-        <div class="farm-data-cell"><div class="farm-data-val">${farm.cycle}</div><div class="farm-data-lbl">Harvest</div></div>
-        <div class="farm-data-cell"><div class="farm-data-val ${farm.iot ? 'g' : ''}">${farm.iot ? 'Active' : 'Pending'}</div><div class="farm-data-lbl">IoT</div></div>
-      </div>
-      ${farm.target > 0 ? `
-      <div class="farm-progress"><div class="farm-progress-fill" style="width:${fundedPct}%"></div></div>
-      <div class="farm-progress-meta">
-        <span class="pct">${fundedPct}% Funded</span>
-        <span>$${farm.raised.toLocaleString()} / $${farm.target.toLocaleString()}</span>
-      </div>` : `
-      <div class="farm-progress"><div class="farm-progress-fill" style="width:0%"></div></div>
-      <div class="farm-progress-meta"><span style="color:var(--muted)">Whitelist Opening</span><span>—</span></div>`}
-      ${showInvestBtn ? `
-      <div class="farm-divider"></div>
-      <button class="farm-invest-btn" onclick="openInvestModal('${farm.id}')" ${!canInvest ? 'disabled' : ''}>
-        ${farm.status === 'soon' ? 'Join Whitelist' : canInvest ? 'Invest with SOL' : 'Connect Wallet to Invest'}
-      </button>
-      <div class="farm-chain"><div class="sol-dot"></div>Verified on Solana Devnet</div>` : ''}
-    </div>
-  </div>`;
-}
-
-// ── Wallet modal HTML (reusable)
-function walletModalHTML() {
-  return `
-  <div class="modal-overlay" id="walletModal">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">Connect Wallet</span>
-        <button class="modal-close" onclick="closeWalletModal()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size:.85rem;color:var(--muted);margin-bottom:1.25rem;font-weight:300">Choose your Solana-compatible wallet to access the AgricFi platform. Your session will remain active until you disconnect.</p>
-        <div id="walletOptions"></div>
-        <p style="font-size:.7rem;color:var(--muted);margin-top:1.25rem;text-align:center;line-height:1.55">By connecting, you confirm you are using Solana Devnet for testing purposes only.</p>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ── Invest modal
-let _investFarm = null;
-function openInvestModal(farmId) {
-  if (!WalletManager.isConnected()) { openWalletModal(); return; }
-  _investFarm = getFarm(farmId);
-  if (!_investFarm) return;
-  const modal = document.getElementById('investModal');
-  if (!modal) return;
-  modal.querySelector('#investFarmName').textContent = _investFarm.name + ' — ' + _investFarm.location;
-  modal.querySelector('#investApy').textContent = _investFarm.roi.min + '–' + _investFarm.roi.max + '%';
-  modal.querySelector('#investCycle').textContent = _investFarm.cycle;
-  modal.querySelector('#investAmount').value = '';
-  updateInvestSummary();
-  modal.classList.add('open');
-}
-
-function closeInvestModal() {
-  const modal = document.getElementById('investModal');
-  if (modal) modal.classList.remove('open');
-  _investFarm = null;
-}
-
-function updateInvestSummary() {
-  const amt = parseFloat(document.getElementById('investAmount')?.value) || 0;
-  const el = document.getElementById('investSummaryAmt');
-  const elSol = document.getElementById('investSummarySol');
-  const elReturn = document.getElementById('investSummaryReturn');
-  if (el) el.textContent = '$' + amt.toLocaleString();
-  if (elSol) elSol.textContent = formatSOL(amt) + ' SOL';
-  if (elReturn && _investFarm) {
-    const est = amt * (1 + _investFarm.roi.max/100);
-    elReturn.textContent = '$' + est.toFixed(2);
-  }
-}
-
-function setQuickAmount(amt) {
-  const el = document.getElementById('investAmount');
-  if (el) { el.value = amt; updateInvestSummary(); }
-}
-
-async function confirmInvestment() {
-  if (!WalletManager.isConnected() || !_investFarm) return;
-  const amt = parseFloat(document.getElementById('investAmount')?.value);
-  if (!amt || amt <= 0) { showToast('error', 'Invalid Amount', 'Enter an amount greater than 0'); return; }
-  const btn = document.getElementById('btnConfirmInvest');
-  if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
-
-  // Simulate devnet transaction
-  await new Promise(r => setTimeout(r, 2200));
-  closeInvestModal();
-  showToast('success', 'Investment Confirmed!', `$${amt.toLocaleString()} invested in ${_investFarm.name}`);
-  if (btn) { btn.disabled = false; btn.textContent = 'Confirm Investment'; }
-
-  // Refresh portfolio if on investor page
-  if (typeof refreshPortfolio === 'function') refreshPortfolio();
-}
-
-function investModalHTML() {
-  return `
-  <div class="modal-overlay" id="investModal">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">Invest in Farm</span>
-        <button class="modal-close" onclick="closeInvestModal()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div style="background:rgba(0,255,135,.05);border:1px solid rgba(0,255,135,.12);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.25rem">
-          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px">Farm</div>
-          <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.95rem" id="investFarmName">—</div>
-          <div style="display:flex;gap:1rem;margin-top:.5rem">
-            <span style="font-size:.75rem;color:var(--muted)">APY: <strong style="color:var(--green)" id="investApy">—</strong></span>
-            <span style="font-size:.75rem;color:var(--muted)">Harvest: <strong style="color:var(--text)" id="investCycle">—</strong></span>
-          </div>
-        </div>
-        <div class="banner info" style="margin-bottom:1.25rem;font-size:.78rem">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-          <span>This is a <strong>devnet transaction</strong>. Get free test SOL from our <a onclick="closeInvestModal();openDiscordGuide()">Discord faucet</a> first.</span>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Investment Amount (USD)</label>
-          <div class="invest-amount-input">
-            <input class="form-input" type="number" id="investAmount" placeholder="0.00" oninput="updateInvestSummary()" min="10">
-            <span class="currency">USD</span>
-          </div>
-          <div class="invest-quick">
-            <button onclick="setQuickAmount(100)">$100</button>
-            <button onclick="setQuickAmount(500)">$500</button>
-            <button onclick="setQuickAmount(1000)">$1,000</button>
-            <button onclick="setQuickAmount(5000)">$5,000</button>
-          </div>
-        </div>
-        <div class="invest-summary">
-          <div class="invest-summary-row"><span>Amount</span><span class="val" id="investSummaryAmt">$0</span></div>
-          <div class="invest-summary-row"><span>Equivalent SOL</span><span class="val" id="investSummarySol">0 SOL</span></div>
-          <div class="invest-summary-row"><span>Estimated Return</span><span class="val green" id="investSummaryReturn">$0</span></div>
-          <div class="invest-summary-row"><span>Network</span><span class="val" style="color:var(--muted)">Solana Devnet</span></div>
-        </div>
-        <button class="btn-primary" style="width:100%;justify-content:center;margin-top:1.25rem" id="btnConfirmInvest" onclick="confirmInvestment()">Confirm Investment</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-// Discord faucet guide modal
-function openDiscordGuide() {
-  showToast('info', 'Get Test SOL', 'Join our Discord → #get-test-sol → Post your wallet address → Bot sends devnet SOL');
-}
-
-// Nav shared HTML builder
-function buildNav(activePage, mode) {
-  const isInvestor = mode === 'investor';
-  const links = isInvestor
-    ? [
-        { href: 'investor.html#dashboard',  label: 'Dashboard',  id: 'dashboard' },
-        { href: 'investor.html#farms',       label: 'All Farms',  id: 'farms' },
-        { href: 'investor.html#portfolio',   label: 'Portfolio',  id: 'portfolio' },
-        { href: 'investor.html#history',     label: 'History',    id: 'history' },
-      ]
-    : [
-        { href: 'farmer.html#overview',      label: 'Overview',   id: 'overview' },
-        { href: 'farmer.html#farms',         label: 'My Farms',   id: 'farms' },
-        { href: 'farmer.html#list',          label: 'List Farm',  id: 'list' },
-        { href: 'farmer.html#payouts',       label: 'Payouts',    id: 'payouts' },
-      ];
-
-  return `
-  <nav class="nav">
-    <div class="nav-left">
-      <img src="assets/logo.png" alt="AgricFi" class="nav-logo">
-      <span class="nav-brand">AgricFi</span>
-      <span class="nav-mode-badge ${mode}">${isInvestor ? 'Investor' : 'Farmer'}</span>
-    </div>
-    <div class="nav-center" id="navCenter">
-      ${links.map(l => `<a href="${l.href}" class="nav-link ${activePage===l.id?'active':''}">${l.label}</a>`).join('')}
-    </div>
-    <div class="nav-right">
-      <div class="btn-copy-addr" id="addrChip" style="display:none" onclick="copyWalletAddress()" title="Copy wallet address">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        <span class="addr-text"></span>
-      </div>
-      <button id="btnWallet" class="btn-wallet" onclick="openWalletModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
-        Connect Wallet
-      </button>
-      <button class="nav-switch" id="navSwitch" onclick="switchMode('${isInvestor?'farmer':'investor'}')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
-        ${isInvestor ? 'Farmer Portal' : 'Investor Portal'}
-      </button>
-      <div class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
-        <span></span><span></span><span></span>
-      </div>
-    </div>
-  </nav>
-  <div id="mobileMenu" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:199;background:rgba(2,8,4,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:1rem" class="mobile-menu">
-    ${links.map(l => `<a href="${l.href}" class="nav-link ${activePage===l.id?'active':''}" style="padding:.75rem 1rem;display:block">${l.label}</a>`).join('')}
-  </div>`;
-}
-
-function toggleMobileMenu() {
-  const m = document.getElementById('mobileMenu');
-  if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
-}
-
-function switchMode(mode) {
-  window.location.href = mode === 'investor' ? 'investor.html' : 'farmer.html';
-}
-
-// Init on page load — restore wallet session
+// Init on page load
 async function initWallet() {
   const restored = await WalletManager.restore();
   if (restored) {
@@ -624,4 +340,3 @@ async function initWallet() {
   initReveal();
   initCounters();
 }
-
