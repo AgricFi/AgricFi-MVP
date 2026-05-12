@@ -9,11 +9,20 @@ const WalletManager = (function() {
   // ── Detect installed wallets
   function detectWallets() {
     const wallets = [];
-    if (window.solana?.isPhantom)   wallets.push({ id: 'phantom',   name: 'Phantom',   provider: window.solana,         icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/phantom/src/icon.svg' });
-    if (window.solflare?.isSolflare) wallets.push({ id: 'solflare',  name: 'Solflare',  provider: window.solflare,        icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/solflare/src/icon.svg' });
-    if (window.backpack)             wallets.push({ id: 'backpack',  name: 'Backpack',  provider: window.backpack,        icon: 'https://raw.githubusercontent.com/coral-xyz/backpack/master/assets/backpack.png' });
-    if (window.glow)                 wallets.push({ id: 'glow',      name: 'Glow',      provider: window.glow,            icon: '' });
-    if (window.sollet)               wallets.push({ id: 'sollet',    name: 'Sollet',    provider: window.sollet,          icon: '' });
+    
+    // PC Extensions
+    if (window.solana?.isPhantom)   wallets.push({ id: 'phantom', name: 'Phantom', provider: window.solana });
+    if (window.solflare?.isSolflare) wallets.push({ id: 'solflare', name: 'Solflare', provider: window.solflare });
+    if (window.backpack)             wallets.push({ id: 'backpack', name: 'Backpack', provider: window.backpack });
+
+    // MOBILE FIX: If no extensions found and user is on a mobile device
+    if (wallets.length === 0 && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+      wallets.push({ 
+        id: 'phantom-mobile', 
+        name: 'Open in Phantom App', 
+        provider: null 
+      });
+    }
     return wallets;
   }
 
