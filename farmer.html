@@ -201,13 +201,14 @@
     </div>
 
     <!-- Connected Overview -->
-    <div id="overview-content" style="display:none">
-      <div class="ph">
+    <div class="ph">
         <div class="ph-left">
           <h1>Farmer Overview</h1>
-          <p>Welcome back, <span id="farmerWelcome" style="color:var(--gold)">Farmer</span></p>
+          <p>Managing <span id="farmCount" style="color:var(--gold)">0</span> active farm blocks</p>
         </div>
-        <button class="btn-gold" onclick="showPanel('listfarm')">+ List New Farm</button>
+        <div class="ph-right-actions">
+          <button class="btn-sm gold" onclick="showPanel('listfarm')">List More Farms</button>
+        </div>
       </div>
 
       <div class="banner success" style="margin-bottom:1.5rem">
