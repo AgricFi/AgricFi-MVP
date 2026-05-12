@@ -28,6 +28,14 @@ const WalletManager = (function() {
 
   // ── Connect to a specific wallet provider
   async function connect(walletId) {
+    // --- MOBILE REDIRECT ADDITION ---
+    if (walletId === 'phantom-mobile') {
+      const cleanUrl = window.location.href.replace(/^https?:\/\//, '');
+      window.location.href = `https://phantom.app/ul/browse/${cleanUrl}`;
+      return { success: false, error: 'Redirecting to Phantom App...' };
+    }
+    // --- END MOBILE REDIRECT ---
+
     const all = detectWallets();
     const wallet = all.find(w => w.id === walletId);
 
