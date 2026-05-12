@@ -485,3 +485,39 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   .stats-grid-4, .stats-grid-3 { grid-template-columns: 1fr; }
   .nav { padding: 0 1rem; }
 }
+
+/* --- FIX FOR OVERLAPPING BUTTONS --- */
+.ph {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap; /* This stops overlapping by moving buttons to a new line if needed */
+  gap: 15px;
+  padding: 10px 0;
+}
+
+.ph-right-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Ensure the Gold button text is visible (Black on Gold) */
+.btn-sm.gold {
+  background-color: var(--gold) !important;
+  color: #000000 !important;
+  font-weight: 700;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .ph {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ph-right-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
