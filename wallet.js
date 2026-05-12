@@ -30,24 +30,21 @@ const WalletManager = (function() {
   async function connect(walletId) {
     // --- MOBILE REDIRECT ADDITION ---
     if (walletId === 'phantom-mobile') {
-      const cleanUrl = window.location.href.replace(/^https?:\/\//, '');
-      window.location.href = `https://phantom.app/ul/browse/${cleanUrl}`;
-      return { success: false, error: 'Redirecting to Phantom App...' };
-    }
+      const cleanUrl = window.location.href.split('#')[0]; 
+    const encodedUrl = encodeURIComponent(cleanUrl);
+    window.location.href = `https://phantom.app/ul/browse/${encodedUrl}?ref=${encodedUrl}`;
+      
     // --- END MOBILE REDIRECT ---
 
     const all = detectWallets();
     const wallet = all.find(w => w.id === walletId);
 
     // If wallet not installed, open install page
-    if (!wallet) {
-      const installUrls = {
-        phantom:  'https://phantom.app/',
-        solflare: 'https://solflare.com/',
-        backpack: 'https://backpack.app/',
-      };
-      if (installUrls[walletId]) window.open(installUrls[walletId], '_blank');
-      return { success: false, error: 'Wallet not installed' };
+    if (!/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+          const installUrls = { phantom: 'https://phantom.app/', solflare: 'https://solflare.com/' };
+          if (installUrls[walletId]) window.open(installUrls[walletId], '_blank');
+      }
+      return { success: false, error: 'Wallet not detected. Please unlock your extension.' };
     }
 
     try {
@@ -216,21 +213,29 @@ function closeWalletModal() {
 
 // Handle wallet selection
 async function handleWalletConnect(walletId) {
-  // --- MOBILE DEEP LINK LOGIC ---
+  // 1. MOBILE REDIRECT (Keep this for phone users)
   if (walletId === 'phantom-mobile') {
     closeWalletModal();
-    const cleanUrl = window.location.href.replace(/^https?:\/\//, '');
-    window.location.href = `https://phantom.app/ul/browse/${cleanUrl}`;
-    return; // Stop here and let the phone switch apps
+    const cleanUrl = window.location.href.split('#')[0];
+    const encodedUrl = encodeURIComponent(cleanUrl);
+    window.location.href = `https://phantom.app/ul/browse/${encodedUrl}?ref=${encodedUrl}`;
+    return;
   }
 
+  // 2. PC CONNECTION (Fix for PC Extensions)
   closeWalletModal();
   showToast('info', 'Connecting...', `Opening ${walletId} wallet`);
-  const result = await WalletManager.connect(walletId);
+  
+  // Notice we call WalletManager.connect (the internal function)
+  const result = await WalletManager.connect(walletId); 
+  
   if (result.success) {
     showToast('success', 'Wallet Connected', `${result.name}: ${WalletManager.formatAddress(result.address)}`);
     updateWalletUI();
     WalletManager.watchChanges(() => { updateWalletUI(); });
+    
+    // This triggers the Dashboard numbers and charts to appear
+    if (typeof onConnected === 'function') onConnected(); 
     if (typeof onWalletConnected === 'function') onWalletConnected(result);
   } else {
     showToast('error', 'Connection Failed', result.error || 'Please try again');
