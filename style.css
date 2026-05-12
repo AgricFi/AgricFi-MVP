@@ -551,3 +551,27 @@ input, select, textarea { font-family: 'DM Sans', sans-serif; }
   font-weight: 600;
   color: #fff;
 }
+
+/* --- HEADER PADDING FIX --- */
+.ph {
+  display: flex;
+  align-items: flex-end; /* Aligns buttons to the bottom of the title area */
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-top: 25px; /* Creates space so buttons don't touch the top nav */
+  margin-bottom: 30px;
+}
+
+.ph-right-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Forcing button text color for visibility */
+.btn-sm.gold {
+  background-color: #f0c040 !important;
+  color: #000000 !important; /* Fixes the yellow-on-yellow text issue */
+  font-weight: 700;
+}
