@@ -1,101 +1,307 @@
-// ── AgricFi MVP — Wallet Manager ──
-// Supports Phantom, Solflare, and all Solana-compatible wallets
+// ── AgricFi MVP — Wallet Manager (FIXED) ──
+// Supports Phantom, Solflare, Backpack, and all Solana-compatible wallets
+// Enhanced mobile wallet detection with deeplink support
 
 const WalletManager = (function() {
 
   const STORAGE_KEY = 'agricfi_wallet';
   let _state = { connected: false, address: null, provider: null, name: null };
+  let _detectionTimeout = null;
 
-  // ── Detect installed wallets
+  // ── Async wallet detection (waits for wallet injection on mobile)
+  async function detectWalletsAsync(timeout = 3000) {
+    return new Promise((resolve) => {
+      const wallets = [];
+      let resolved = false;
+
+      const checkWallets = () => {
+        const newWallets = [];
+        if (window.solana?.isPhantom) {
+          newWallets.push({
+            id: 'phantom',
+            name: 'Phantom',
+            provider: window.solana,
+            icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/phantom/icon.svg'
+          });
+        }
+        if (window.solflare?.isSolflare) {
+          newWallets.push({
+            id: 'solflare',
+            name: 'Solflare',
+            provider: window.solflare,
+            icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/solflare/icon.svg'
+          });
+        }
+        if (window.backpack) {
+          newWallets.push({
+            id: 'backpack',
+            name: 'Backpack',
+            provider: window.backpack,
+            icon: 'https://raw.githubusercontent.com/coral-xyz/backpack/master/assets/backpack.svg'
+          });
+        }
+        if (window.glow) {
+          newWallets.push({
+            id: 'glow',
+            name: 'Glow',
+            provider: window.glow,
+            icon: ''
+          });
+        }
+        if (window.sollet) {
+          newWallets.push({
+            id: 'sollet',
+            name: 'Sollet',
+            provider: window.sollet,
+            icon: ''
+          });
+        }
+        return newWallets;
+      };
+
+      // Initial check
+      const initial = checkWallets();
+      if (initial.length > 0) {
+        resolved = true;
+        resolve(initial);
+        return;
+      }
+
+      // Poll for wallet injection (mobile-specific)
+      const pollInterval = setInterval(() => {
+        if (resolved) {
+          clearInterval(pollInterval);
+          return;
+        }
+        const found = checkWallets();
+        if (found.length > 0) {
+          resolved = true;
+          clearInterval(pollInterval);
+          resolve(found);
+        }
+      }, 100);
+
+      // Timeout after specified duration
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          clearInterval(pollInterval);
+          resolve(checkWallets());
+        }
+      }, timeout);
+    });
+  }
+
+  // ── Synchronous detection (fallback for UI rendering)
   function detectWallets() {
     const wallets = [];
-    if (window.solana?.isPhantom)   wallets.push({ id: 'phantom',   name: 'Phantom',   provider: window.solana,         icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/phantom/src/icon.svg' });
-    if (window.solflare?.isSolflare) wallets.push({ id: 'solflare',  name: 'Solflare',  provider: window.solflare,        icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/solflare/src/icon.svg' });
-    if (window.backpack)             wallets.push({ id: 'backpack',  name: 'Backpack',  provider: window.backpack,        icon: 'https://raw.githubusercontent.com/coral-xyz/backpack/master/assets/backpack.png' });
-    if (window.glow)                 wallets.push({ id: 'glow',      name: 'Glow',      provider: window.glow,            icon: '' });
-    if (window.sollet)               wallets.push({ id: 'sollet',    name: 'Sollet',    provider: window.sollet,          icon: '' });
+    if (window.solana?.isPhantom) {
+      wallets.push({
+        id: 'phantom',
+        name: 'Phantom',
+        provider: window.solana,
+        icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/phantom/icon.svg'
+      });
+    }
+    if (window.solflare?.isSolflare) {
+      wallets.push({
+        id: 'solflare',
+        name: 'Solflare',
+        provider: window.solflare,
+        icon: 'https://raw.githubusercontent.com/solana-labs/wallet-adapter/master/packages/wallets/solflare/icon.svg'
+      });
+    }
+    if (window.backpack) {
+      wallets.push({
+        id: 'backpack',
+        name: 'Backpack',
+        provider: window.backpack,
+        icon: 'https://raw.githubusercontent.com/coral-xyz/backpack/master/assets/backpack.svg'
+      });
+    }
+    if (window.glow) {
+      wallets.push({
+        id: 'glow',
+        name: 'Glow',
+        provider: window.glow,
+        icon: ''
+      });
+    }
+    if (window.sollet) {
+      wallets.push({
+        id: 'sollet',
+        name: 'Sollet',
+        provider: window.sollet,
+        icon: ''
+      });
+    }
     return wallets;
+  }
+
+  // ── Check if running on mobile
+  function isMobileUserAgent() {
+    return /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  // ── Get mobile wallet deeplink
+  function getMobileDeeplink(walletId) {
+    const currentUrl = encodeURIComponent(window.location.href);
+    const deeplinks = {
+      phantom: `https://phantom.app/ul/browse/${currentUrl}?ref=agricfi`,
+      solflare: `solflare://browse/${currentUrl}`,
+      backpack: `https://backpack.app/browse/${currentUrl}`,
+    };
+    return deeplinks[walletId] || null;
   }
 
   // ── Connect to a specific wallet provider
   async function connect(walletId) {
-    const all = detectWallets();
-    const wallet = all.find(w => w.id === walletId);
-
-    // If wallet not installed, open install page
-    if (!wallet) {
-      const installUrls = {
-        phantom:  'https://phantom.app/',
-        solflare: 'https://solflare.com/',
-        backpack: 'https://backpack.app/',
-      };
-      if (installUrls[walletId]) window.open(installUrls[walletId], '_blank');
-      return { success: false, error: 'Wallet not installed' };
-    }
-
     try {
-      const resp = await wallet.provider.connect();
-      const address = resp.publicKey.toString();
-      _state = { connected: true, address, provider: wallet.provider, name: wallet.name };
-      persist();
-      return { success: true, address, name: wallet.name };
+      // First try async detection (waits up to 3 seconds for mobile wallet injection)
+      const all = await detectWalletsAsync(3000);
+      let wallet = all.find(w => w.id === walletId);
+
+      // If wallet not detected and on mobile, try deeplink
+      if (!wallet && isMobileUserAgent()) {
+        const deeplink = getMobileDeeplink(walletId);
+        if (deeplink) {
+          // Store pending connection attempt
+          sessionStorage.setItem('agricfi_pending_wallet', walletId);
+          window.location.href = deeplink;
+          return { success: false, error: 'Redirecting to wallet...' };
+        }
+      }
+
+      // If still not found, show install prompt
+      if (!wallet) {
+        const installUrls = {
+          phantom: 'https://phantom.app/',
+          solflare: 'https://solflare.com/',
+          backpack: 'https://backpack.app/',
+          glow: 'https://glow.app/',
+          sollet: 'https://www.sollet.io/',
+        };
+        if (installUrls[walletId]) {
+          window.open(installUrls[walletId], '_blank');
+        }
+        return { success: false, error: 'Wallet not installed' };
+      }
+
+      // Attempt connection
+      try {
+        const resp = await wallet.provider.connect();
+        const address = resp.publicKey.toString();
+        _state = { connected: true, address, provider: wallet.provider, name: wallet.name };
+        persist();
+        // Clear pending connection
+        sessionStorage.removeItem('agricfi_pending_wallet');
+        return { success: true, address, name: wallet.name };
+      } catch (err) {
+        return { success: false, error: err.message || 'Connection rejected' };
+      }
     } catch (err) {
-      return { success: false, error: err.message || 'Connection rejected' };
+      console.error('Connection error:', err);
+      return { success: false, error: err.message || 'Connection failed' };
     }
   }
 
   // ── Disconnect
   async function disconnect() {
     try {
-      if (_state.provider?.disconnect) await _state.provider.disconnect();
-    } catch(e) {}
+      if (_state.provider?.disconnect) {
+        await _state.provider.disconnect();
+      }
+    } catch (e) {
+      console.error('Disconnect error:', e);
+    }
     _state = { connected: false, address: null, provider: null, name: null };
     localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem('agricfi_pending_wallet');
   }
 
   // ── Restore session from localStorage
   async function restore() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return false;
+
     try {
       const { address, name, walletId } = JSON.parse(saved);
-      const all = detectWallets();
+      const all = await detectWalletsAsync(2000);
       const wallet = all.find(w => w.id === walletId);
       if (!wallet) return false;
 
       // Silently reconnect (no user prompt if already approved)
-      if (wallet.provider.isConnected && wallet.provider.publicKey) {
-        _state = { connected: true, address: wallet.provider.publicKey.toString(), provider: wallet.provider, name };
+      if (wallet.provider?.isConnected && wallet.provider?.publicKey) {
+        _state = {
+          connected: true,
+          address: wallet.provider.publicKey.toString(),
+          provider: wallet.provider,
+          name
+        };
         return true;
       }
+
       // Try eager connect (Phantom/Solflare support this)
       try {
         const resp = await wallet.provider.connect({ onlyIfTrusted: true });
-        _state = { connected: true, address: resp.publicKey.toString(), provider: wallet.provider, name };
+        _state = {
+          connected: true,
+          address: resp.publicKey.toString(),
+          provider: wallet.provider,
+          name
+        };
         return true;
-      } catch(e) { return false; }
-    } catch(e) { return false; }
+      } catch (e) {
+        return false;
+      }
+    } catch (e) {
+      console.error('Restore error:', e);
+      return false;
+    }
   }
 
   // ── Persist wallet session
   function persist() {
     if (!_state.connected) return;
-    const id = Object.keys({phantom:'',solflare:'',backpack:''}).find(k => {
-      const p = {phantom:window.solana,solflare:window.solflare,backpack:window.backpack}[k];
-      return p === _state.provider;
-    }) || 'unknown';
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ address: _state.address, name: _state.name, walletId: id }));
+    try {
+      const walletMap = {
+        phantom: window.solana,
+        solflare: window.solflare,
+        backpack: window.backpack,
+        glow: window.glow,
+        sollet: window.sollet
+      };
+      const id = Object.keys(walletMap).find(k => {
+        return walletMap[k] === _state.provider;
+      }) || 'unknown';
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        address: _state.address,
+        name: _state.name,
+        walletId: id,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.error('Persist error:', e);
+    }
   }
 
   // ── Public getters
-  function getState()   { return { ..._state }; }
-  function isConnected(){ return _state.connected; }
-  function getAddress() { return _state.address; }
-  function getName()    { return _state.name; }
+  function getState() {
+    return { ..._state };
+  }
+  function isConnected() {
+    return _state.connected;
+  }
+  function getAddress() {
+    return _state.address;
+  }
+  function getName() {
+    return _state.name;
+  }
   function formatAddress(addr) {
     const a = addr || _state.address;
     if (!a) return '';
-    return a.slice(0,4) + '...' + a.slice(-4);
+    return a.slice(0, 4) + '...' + a.slice(-4);
   }
 
   // ── Copy address to clipboard
@@ -104,24 +310,50 @@ const WalletManager = (function() {
     try {
       await navigator.clipboard.writeText(_state.address);
       return true;
-    } catch(e) { return false; }
+    } catch (e) {
+      console.error('Copy error:', e);
+      return false;
+    }
   }
 
   // ── Listen for wallet account changes
   function watchChanges(onDisconnect) {
     if (_state.provider) {
-      _state.provider.on?.('disconnect', () => {
+      // Disconnect event
+      const onProviderDisconnect = () => {
         disconnect();
         if (onDisconnect) onDisconnect();
-      });
-      _state.provider.on?.('accountChanged', (pk) => {
-        if (pk) _state.address = pk.toString();
-        else { disconnect(); if (onDisconnect) onDisconnect(); }
-      });
+      };
+
+      // Account changed event
+      const onAccountChanged = (pk) => {
+        if (pk) {
+          _state.address = pk.toString();
+        } else {
+          disconnect();
+          if (onDisconnect) onDisconnect();
+        }
+      };
+
+      _state.provider.on?.('disconnect', onProviderDisconnect);
+      _state.provider.on?.('accountChanged', onAccountChanged);
     }
   }
 
-  return { detectWallets, connect, disconnect, restore, getState, isConnected, getAddress, getName, formatAddress, copyAddress, watchChanges };
+  return {
+    detectWallets,
+    detectWalletsAsync,
+    connect,
+    disconnect,
+    restore,
+    getState,
+    isConnected,
+    getAddress,
+    getName,
+    formatAddress,
+    copyAddress,
+    watchChanges
+  };
 })();
 
 // ── UI Helpers ──
@@ -130,9 +362,24 @@ const WalletManager = (function() {
 function buildWalletModal() {
   const installed = WalletManager.detectWallets().map(w => w.id);
   const ALL_WALLETS = [
-    { id: 'phantom',  name: 'Phantom',  desc: 'Most popular Solana wallet',    iconUrl: 'https://i.ibb.co/k4DmBjD/phantom.png' },
-    { id: 'solflare', name: 'Solflare', desc: 'Secure Solana wallet',           iconUrl: 'https://i.ibb.co/6r9wBHJ/solflare.png' },
-    { id: 'backpack', name: 'Backpack', desc: 'Multi-chain wallet by Coral',    iconUrl: 'https://i.ibb.co/RgNwqcW/backpack.png' },
+    {
+      id: 'phantom',
+      name: 'Phantom',
+      desc: 'Most popular Solana wallet',
+      iconUrl: 'https://i.ibb.co/k4DmBjD/phantom.png'
+    },
+    {
+      id: 'solflare',
+      name: 'Solflare',
+      desc: 'Secure Solana wallet',
+      iconUrl: 'https://i.ibb.co/6r9wBHJ/solflare.png'
+    },
+    {
+      id: 'backpack',
+      name: 'Backpack',
+      desc: 'Multi-chain wallet by Coral',
+      iconUrl: 'https://i.ibb.co/RgNwqcW/backpack.png'
+    },
   ];
 
   return ALL_WALLETS.map(w => {
@@ -141,7 +388,7 @@ function buildWalletModal() {
     <div class="wallet-option" onclick="handleWalletConnect('${w.id}')">
       <div class="wallet-icon">
         <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-          ${w.id === 'phantom'  ? '<circle cx="16" cy="16" r="16" fill="#ab9ff2"/><path d="M27 16.5c0 6.075-4.925 11-11 11S5 22.575 5 16.5 9.925 5.5 16 5.5s11 4.925 11 11zm-5.5-.5c0-3.038-2.462-5.5-5.5-5.5S10.5 12.962 10.5 16s2.462 5.5 5.5 5.5 5.5-2.462 5.5-5.5z" fill="white"/>' : ''}
+          ${w.id === 'phantom' ? '<circle cx="16" cy="16" r="16" fill="#ab9ff2"/><path d="M27 16.5c0 6.075-4.925 11-11 11S5 22.575 5 16.5 9.925 5.5 16 5.5s11 4.925 11 11zm-5.5-.5c0-3.038-2.462-5.5-5.5-5.5s-5.5 2.462-5.5 5.5 2.462 5.5 5.5 5.5 5.5-2.462 5.5-5.5z" fill="white"/>' : ''}
           ${w.id === 'solflare' ? '<circle cx="16" cy="16" r="16" fill="#FC8800"/><path d="M16 6l8 10-8 10-8-10z" fill="white" opacity=".9"/>' : ''}
           ${w.id === 'backpack' ? '<rect width="32" height="32" rx="8" fill="#E33E3F"/><path d="M10 12h12v12H10z M13 12V9a3 3 0 016 0v3" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>' : ''}
         </svg>
@@ -160,9 +407,8 @@ function buildWalletModal() {
 // Update all wallet UI elements on the page
 function updateWalletUI() {
   const state = WalletManager.getState();
-  const btnWallet  = document.getElementById('btnWallet');
-  const addrChip   = document.getElementById('addrChip');
-  const navSwitch  = document.getElementById('navSwitch');
+  const btnWallet = document.getElementById('btnWallet');
+  const addrChip = document.getElementById('addrChip');
 
   if (!btnWallet) return;
 
@@ -177,7 +423,8 @@ function updateWalletUI() {
     }
   } else {
     btnWallet.className = 'btn-wallet';
-    btnWallet.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg> Connect Wallet`;
+    btnWallet.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
+    Connect Wallet`;
     btnWallet.onclick = () => openWalletModal();
     if (addrChip) addrChip.style.display = 'none';
   }
@@ -237,7 +484,7 @@ function showToast(type, title, msg, duration = 4000) {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `
-    <span class="toast-icon">${icons[type]||'i'}</span>
+    <span class="toast-icon">${icons[type] || 'i'}</span>
     <div class="toast-body">
       <div class="toast-title">${title}</div>
       <div class="toast-msg">${msg}</div>
@@ -256,28 +503,46 @@ function initParticles(canvasId) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  resize(); window.addEventListener('resize', resize);
-  const pts = Array.from({length: 80}, () => ({
-    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+  resize();
+  window.addEventListener('resize', resize);
+  const pts = Array.from({ length: 80 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
     r: Math.random() * 1.2 + 0.3,
-    vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+    vx: (Math.random() - 0.5) * 0.2,
+    vy: (Math.random() - 0.5) * 0.2,
     a: Math.random() * 0.35 + 0.05,
     c: Math.random() > 0.75 ? '#f0c040' : '#00ff87'
   }));
   (function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     pts.forEach(p => {
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
-      if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fillStyle = p.c; ctx.globalAlpha = p.a; ctx.fill();
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.c;
+      ctx.globalAlpha = p.a;
+      ctx.fill();
     });
     ctx.globalAlpha = 1;
     for (let i = 0; i < pts.length; i++) {
-      for (let j = i+1; j < pts.length; j++) {
-        const dx = pts[i].x-pts[j].x, dy = pts[i].y-pts[j].y, d = Math.sqrt(dx*dx+dy*dy);
-        if (d < 80) { ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.strokeStyle=`rgba(0,255,135,${0.04*(1-d/80)})`; ctx.lineWidth=0.5; ctx.stroke(); }
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x,
+          dy = pts[i].y - pts[j].y,
+          d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 80) {
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.strokeStyle = `rgba(0,255,135,${0.04 * (1 - d / 80)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
       }
     }
     requestAnimationFrame(draw);
@@ -293,11 +558,13 @@ function initReveal() {
 }
 
 // ── Animated counters
-function animateCounter(el, target, prefix='', suffix='', duration=1800) {
+function animateCounter(el, target, prefix = '', suffix = '', duration = 1800) {
   const start = performance.now();
   const big = target > 999;
   (function up(now) {
-    const p = Math.min((now-start)/duration, 1), ease = 1 - Math.pow(1-p, 3), cur = target * ease;
+    const p = Math.min((now - start) / duration, 1),
+      ease = 1 - Math.pow(1 - p, 3),
+      cur = target * ease;
     el.textContent = prefix + (big ? Math.floor(cur).toLocaleString() : parseFloat(cur.toFixed(1))) + suffix;
     if (p < 1) requestAnimationFrame(up);
   })(start);
@@ -308,7 +575,7 @@ function initCounters() {
     entries.forEach(e => {
       if (e.isIntersecting) {
         const el = e.target;
-        animateCounter(el, parseFloat(el.dataset.count), el.dataset.prefix||'', el.dataset.suffix||'');
+        animateCounter(el, parseFloat(el.dataset.count), el.dataset.prefix || '', el.dataset.suffix || '');
         obs.unobserve(el);
       }
     });
@@ -322,8 +589,8 @@ function farmCertSVG(farm) {
   const c = isGreen ? '0,255,135' : farm.color === 'gold' ? '240,192,64' : '150,150,255';
   return `<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="bg${farm.id}" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="${isGreen?'#001a08':farm.color==='gold'?'#0d1800':'#0a0a14'}"/>
-      <stop offset="100%" stop-color="${isGreen?'#003318':farm.color==='gold'?'#1a2e00':'#141428'}"/>
+      <stop offset="0%" stop-color="${isGreen ? '#001a08' : farm.color === 'gold' ? '#0d1800' : '#0a0a14'}"/>
+      <stop offset="100%" stop-color="${isGreen ? '#003318' : farm.color === 'gold' ? '#1a2e00' : '#141428'}"/>
     </linearGradient></defs>
     <rect width="400" height="160" fill="url(#bg${farm.id})"/>
     <path d="M20,80 Q80,50 140,75 Q200,100 260,65 Q320,30 390,55" fill="none" stroke="rgba(${c},.12)" stroke-width="1"/>
@@ -444,7 +711,7 @@ function updateInvestSummary() {
   if (el) el.textContent = '$' + amt.toLocaleString();
   if (elSol) elSol.textContent = formatSOL(amt) + ' SOL';
   if (elReturn && _investFarm) {
-    const est = amt * (1 + _investFarm.roi.max/100);
+    const est = amt * (1 + _investFarm.roi.max / 100);
     elReturn.textContent = '$' + est.toFixed(2);
   }
 }
@@ -529,17 +796,17 @@ function buildNav(activePage, mode) {
   const isInvestor = mode === 'investor';
   const links = isInvestor
     ? [
-        { href: 'investor.html#dashboard',  label: 'Dashboard',  id: 'dashboard' },
-        { href: 'investor.html#farms',       label: 'All Farms',  id: 'farms' },
-        { href: 'investor.html#portfolio',   label: 'Portfolio',  id: 'portfolio' },
-        { href: 'investor.html#history',     label: 'History',    id: 'history' },
-      ]
+      { href: 'investor.html#dashboard', label: 'Dashboard', id: 'dashboard' },
+      { href: 'investor.html#farms', label: 'All Farms', id: 'farms' },
+      { href: 'investor.html#portfolio', label: 'Portfolio', id: 'portfolio' },
+      { href: 'investor.html#history', label: 'History', id: 'history' },
+    ]
     : [
-        { href: 'farmer.html#overview',      label: 'Overview',   id: 'overview' },
-        { href: 'farmer.html#farms',         label: 'My Farms',   id: 'farms' },
-        { href: 'farmer.html#list',          label: 'List Farm',  id: 'list' },
-        { href: 'farmer.html#payouts',       label: 'Payouts',    id: 'payouts' },
-      ];
+      { href: 'farmer.html#overview', label: 'Overview', id: 'overview' },
+      { href: 'farmer.html#farms', label: 'My Farms', id: 'farms' },
+      { href: 'farmer.html#list', label: 'List Farm', id: 'list' },
+      { href: 'farmer.html#payouts', label: 'Payouts', id: 'payouts' },
+    ];
 
   return `
   <nav class="nav">
@@ -549,7 +816,7 @@ function buildNav(activePage, mode) {
       <span class="nav-mode-badge ${mode}">${isInvestor ? 'Investor' : 'Farmer'}</span>
     </div>
     <div class="nav-center" id="navCenter">
-      ${links.map(l => `<a href="${l.href}" class="nav-link ${activePage===l.id?'active':''}">${l.label}</a>`).join('')}
+      ${links.map(l => `<a href="${l.href}" class="nav-link ${activePage === l.id ? 'active' : ''}">${l.label}</a>`).join('')}
     </div>
     <div class="nav-right">
       <div class="btn-copy-addr" id="addrChip" style="display:none" onclick="copyWalletAddress()" title="Copy wallet address">
@@ -560,7 +827,7 @@ function buildNav(activePage, mode) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg>
         Connect Wallet
       </button>
-      <button class="nav-switch" id="navSwitch" onclick="switchMode('${isInvestor?'farmer':'investor'}')">
+      <button class="nav-switch" id="navSwitch" onclick="switchMode('${isInvestor ? 'farmer' : 'investor'}')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
         ${isInvestor ? 'Farmer Portal' : 'Investor Portal'}
       </button>
@@ -569,8 +836,8 @@ function buildNav(activePage, mode) {
       </div>
     </div>
   </nav>
-  <div id="mobileMenu" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:199;background:rgba(2,8,4,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:1rem" class="mobile-menu">
-    ${links.map(l => `<a href="${l.href}" class="nav-link ${activePage===l.id?'active':''}" style="padding:.75rem 1rem;display:block">${l.label}</a>`).join('')}
+  <div id="mobileMenu" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:199;background:rgba(2,8,4,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:1rem">
+    ${links.map(l => `<a href="${l.href}" class="nav-link ${activePage === l.id ? 'active' : ''}" style="padding:.75rem 1rem;display:block">${l.label}</a>`).join('')}
   </div>`;
 }
 
@@ -583,15 +850,23 @@ function switchMode(mode) {
   window.location.href = mode === 'investor' ? 'investor.html' : 'farmer.html';
 }
 
-// Init on page load — restore wallet session
+// ── Init on page load — restore wallet session
 async function initWallet() {
+  // Restore session with async detection (waits for mobile wallet injection)
   const restored = await WalletManager.restore();
   if (restored) {
     updateWalletUI();
     WalletManager.watchChanges(() => updateWalletUI());
   }
+  
+  // Check for pending wallet connection (after redirect from mobile wallet)
+  const pendingWallet = sessionStorage.getItem('agricfi_pending_wallet');
+  if (pendingWallet && WalletManager.isConnected()) {
+    sessionStorage.removeItem('agricfi_pending_wallet');
+    updateWalletUI();
+  }
+  
   initParticles('particles');
   initReveal();
   initCounters();
 }
-
