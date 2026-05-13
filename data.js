@@ -194,9 +194,9 @@ const FARMER_PORTFOLIO = {
   agfiEarned: 4850,
   farms: ['AGF-OGN-001', 'AGF-KEB-002'],
   payouts: [
-    { farm: 'Maize Farm — Ogun', investors: 18, amount: 3600, due: '15 Apr 2026', status: 'upcoming' },
-    { farm: 'Rice Farm — Kebbi',  investors: 16, amount: 3200, due: '27 Apr 2026', status: 'upcoming' },
-    { farm: 'Maize Farm — Ogun', investors: 18, amount: 3300, due: '15 Jan 2026', status: 'paid' },
+    { farm: 'Maize Farm. Ogun', investors: 18, amount: 3600, due: '15 Apr 2026', status: 'upcoming' },
+    { farm: 'Rice Farm. Kebbi',  investors: 16, amount: 3200, due: '27 Apr 2026', status: 'upcoming' },
+    { farm: 'Maize Farm. Ogun', investors: 18, amount: 3300, due: '15 Jan 2026', status: 'paid' },
   ]
 };
 
@@ -212,9 +212,9 @@ const INVESTOR_PORTFOLIO = {
     { farmId: 'AGF-KAN-004', invested: 3500,  apy: 19, earned: 665,  duration: '18mo', status: 'active',       nft: '#004' },
   ],
   activity: [
-    { type: 'yield',  title: 'Yield Payout',         desc: '$275 from Maize Farm — Ogun',              time: '2 hrs ago',   tx: '5xKj...3mNp' },
-    { type: 'invest', title: 'Investment Deposited',  desc: '0.8 SOL into Rice Paddies — Delta',        time: '3 days ago',  tx: '9aQr...7vBk' },
-    { type: 'nft',    title: 'Farm NFT Acquired',     desc: 'NFT #001 (Maize Farm — Ogun) minted',      time: '14 days ago', tx: '3eWs...1xLm' },
+    { type: 'yield',  title: 'Yield Payout',         desc: '$275 from Maize Farm. Ogun',              time: '2 hrs ago',   tx: '5xKj...3mNp' },
+    { type: 'invest', title: 'Investment Deposited',  desc: '0.8 SOL into Rice Paddies. Delta',        time: '3 days ago',  tx: '9aQr...7vBk' },
+    { type: 'nft',    title: 'Farm NFT Acquired',     desc: 'NFT #001 (Maize Farm. Ogun) minted',      time: '14 days ago', tx: '3eWs...1xLm' },
     { type: 'alert',  title: 'IoT Alert',             desc: 'Kano Soybean: Soil moisture optimal',       time: 'Yesterday',   tx: null },
   ],
   history: [
@@ -223,8 +223,8 @@ const INVESTOR_PORTFOLIO = {
     { farmId: 'AGF-KAN-004', tx: '3eWs...1xLm', amount: 3500, apy: 19, date: '10 Jan 2026', estReturn: 4165, status: 'active' },
   ],
   yieldReceipts: [
-    { farm: 'Maize Farm — Ogun Q1',  tx: 'f011...8c4e', amount: 275.00,  date: '1 Apr 2026' },
-    { farm: 'Rice Paddies — Delta Q4', tx: '8a3c...c19d', amount: 375.00,  date: '15 Jan 2026' },
+    { farm: 'Maize Farm. Ogun Q1',  tx: 'f011...8c4e', amount: 275.00,  date: '1 Apr 2026' },
+    { farm: 'Rice Paddies. Delta Q4', tx: '8a3c...c19d', amount: 375.00,  date: '15 Jan 2026' },
   ]
 };
 
