@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Farmer Portal — AgricFi</title>
+<title>Farmer Portal, AgricFi</title>
 <link rel="icon" href="assets/logo.png" type="image/png">
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -169,7 +169,7 @@
     <div class="sidebar-label">Account</div>
     <div class="sidebar-wallet" id="sidebarWallet" style="display:none">
       <div class="sw-label">Connected Wallet</div>
-      <div class="sw-addr" id="swAddr">—</div>
+      <div class="sw-addr" id="swAddr">, </div>
       <div class="sw-actions">
         <button class="sw-btn" onclick="copyAddr()">Copy</button>
         <button class="sw-btn red" onclick="disconnectWallet()">Disconnect</button>
@@ -329,10 +329,10 @@
           <div class="form-group"><label class="form-label required">GPS Coordinates</label><input class="form-input" id="f_coords" placeholder="e.g. 6.8672° N, 3.4432° E"></div>
           <div class="form-group"><label class="form-label required">Expected Harvest Date</label><input class="form-input" id="f_harvest" type="month"></div>
         </div>
-        <div class="form-group"><label class="form-label">Farm Description</label><textarea class="form-textarea" id="f_desc" placeholder="Describe your farm — soil quality, water access, infrastructure, experience..."></textarea></div>
+        <div class="form-group"><label class="form-label">Farm Description</label><textarea class="form-textarea" id="f_desc" placeholder="Describe your farm, soil quality, water access, infrastructure, experience..."></textarea></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Does the farm have IoT sensors?</label>
-            <select class="form-select" id="f_iot"><option value="">Select</option><option value="yes">Yes — fully equipped</option><option value="partial">Partial — some sensors</option><option value="no">No — manual monitoring</option></select>
+            <select class="form-select" id="f_iot"><option value="">Select</option><option value="yes">Yes, fully equipped</option><option value="partial">Partial, some sensors</option><option value="no">No, manual monitoring</option></select>
           </div>
           <div class="form-group"><label class="form-label">Years Farming This Land</label><input class="form-input" id="f_years" type="number" placeholder="e.g. 5" min="0"></div>
         </div>
@@ -353,7 +353,7 @@
             <label class="form-label required">Land Ownership / Lease Document</label>
             <div class="file-drop" onclick="triggerFile('doc_land')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_land')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              <p>Click or drag file here</p><span>PDF, JPG, PNG — max 10MB</span>
+              <p>Click or drag file here</p><span>PDF, JPG, PNG, max 10MB</span>
             </div>
             <input type="file" id="doc_land" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="fileSelected(this,'land')">
             <div id="file_land" class="file-list"></div>
@@ -362,7 +362,7 @@
             <label class="form-label required">Government Issued ID (Farmer)</label>
             <div class="file-drop" onclick="triggerFile('doc_id')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_id')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-              <p>Click or drag file here</p><span>PDF, JPG, PNG — max 10MB</span>
+              <p>Click or drag file here</p><span>PDF, JPG, PNG, max 10MB</span>
             </div>
             <input type="file" id="doc_id" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="fileSelected(this,'id')">
             <div id="file_id" class="file-list"></div>
@@ -371,7 +371,7 @@
             <label class="form-label required">Farm Photos (min. 3)</label>
             <div class="file-drop" onclick="triggerFile('doc_photos')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'doc_photos')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <p>Click or drag files here</p><span>JPG, PNG — max 5MB each</span>
+              <p>Click or drag files here</p><span>JPG, PNG, max 5MB each</span>
             </div>
             <input type="file" id="doc_photos" style="display:none" accept=".jpg,.jpeg,.png" multiple onchange="fileSelected(this,'photos')">
             <div id="file_photos" class="file-list"></div>
@@ -569,7 +569,7 @@ function renderMyFarms(containerId){
     return`<div class="farmer-farm-card">
       <div class="ffc-header">
         <div>
-          <div class="ffc-name">${f.name} — ${f.location}</div>
+          <div class="ffc-name">${f.name}, ${f.location}</div>
           <div style="font-size:.72rem;color:var(--muted);margin-top:2px">NFT ${f.nftId} · Serial: ${f.serial}</div>
         </div>
         <div style="display:flex;align-items:center;gap:.75rem">
@@ -645,8 +645,8 @@ function validateStep(step){
     if(!name||!state||!crop||!size||!coords||!harvest){showToast('error','Missing Fields','Please fill all required fields');return false;}
     _kycData.name=name;_kycData.state=state;_kycData.crop=crop;_kycData.size=size;_kycData.coords=coords;_kycData.harvest=harvest;
     _kycData.iot=document.getElementById('f_iot')?.value||'No';
-    _kycData.years=document.getElementById('f_years')?.value||'—';
-    _kycData.desc=document.getElementById('f_desc')?.value||'—';
+    _kycData.years=document.getElementById('f_years')?.value||',';
+    _kycData.desc=document.getElementById('f_desc')?.value||',';
   }
   if(step===2){
     if(!_files.land||!_files.id){showToast('error','Missing Documents','Land document and ID are required');return false;}
@@ -659,8 +659,8 @@ function validateStep(step){
     const minInv=document.getElementById('f_minInv')?.value;
     if(!target||!roi||!dur||!minInv){showToast('error','Missing Fields','Please fill all required financial fields');return false;}
     _kycData.target=target;_kycData.roi=roi;_kycData.duration=dur;_kycData.minInv=minInv;
-    _kycData.yield=document.getElementById('f_yield')?.value||'—';
-    _kycData.price=document.getElementById('f_price')?.value||'—';
+    _kycData.yield=document.getElementById('f_yield')?.value||',';
+    _kycData.price=document.getElementById('f_price')?.value||',';
     _kycData.offtake=document.getElementById('f_offtake')?.value||'None';
     _kycData.wallet=_ws.address||'Not connected';
   }
@@ -684,19 +684,19 @@ function updateStepper(){
 
 function buildReview(){
   document.getElementById('reviewFarmInfo').innerHTML=`
-    <div class="review-row"><span>Farm Name</span><span class="rv">${_kycData.name||'—'}</span></div>
-    <div class="review-row"><span>State</span><span class="rv">${_kycData.state||'—'}</span></div>
-    <div class="review-row"><span>Crop</span><span class="rv">${_kycData.crop||'—'}</span></div>
-    <div class="review-row"><span>Size</span><span class="rv">${_kycData.size||'—'} Hectares</span></div>
-    <div class="review-row"><span>GPS Coordinates</span><span class="rv">${_kycData.coords||'—'}</span></div>
-    <div class="review-row"><span>Expected Harvest</span><span class="rv">${_kycData.harvest||'—'}</span></div>
-    <div class="review-row"><span>IoT Sensors</span><span class="rv">${_kycData.iot||'—'}</span></div>`;
+    <div class="review-row"><span>Farm Name</span><span class="rv">${_kycData.name||','}</span></div>
+    <div class="review-row"><span>State</span><span class="rv">${_kycData.state||','}</span></div>
+    <div class="review-row"><span>Crop</span><span class="rv">${_kycData.crop||','}</span></div>
+    <div class="review-row"><span>Size</span><span class="rv">${_kycData.size||','} Hectares</span></div>
+    <div class="review-row"><span>GPS Coordinates</span><span class="rv">${_kycData.coords||','}</span></div>
+    <div class="review-row"><span>Expected Harvest</span><span class="rv">${_kycData.harvest||','}</span></div>
+    <div class="review-row"><span>IoT Sensors</span><span class="rv">${_kycData.iot||','}</span></div>`;
   document.getElementById('reviewFinancials').innerHTML=`
     <div class="review-row"><span>Funding Target</span><span class="rv" style="color:var(--gold)">$${parseInt(_kycData.target||0).toLocaleString()}</span></div>
-    <div class="review-row"><span>Investor ROI</span><span class="rv" style="color:var(--green)">${_kycData.roi||'—'}%</span></div>
-    <div class="review-row"><span>Duration</span><span class="rv">${_kycData.duration||'—'}</span></div>
+    <div class="review-row"><span>Investor ROI</span><span class="rv" style="color:var(--green)">${_kycData.roi||','}%</span></div>
+    <div class="review-row"><span>Duration</span><span class="rv">${_kycData.duration||','}</span></div>
     <div class="review-row"><span>Min. Investment</span><span class="rv">$${parseInt(_kycData.minInv||0).toLocaleString()}</span></div>
-    <div class="review-row"><span>Payout Wallet</span><span class="rv" style="font-family:'Courier New',monospace;font-size:.78rem">${_kycData.wallet||'—'}</span></div>`;
+    <div class="review-row"><span>Payout Wallet</span><span class="rv" style="font-family:'Courier New',monospace;font-size:.78rem">${_kycData.wallet||','}</span></div>`;
   const docList=[
     {k:'land',l:'Land Document'},
     {k:'id',l:'Government ID'},
@@ -746,11 +746,11 @@ function processFile(file,key){
 function initCharts(){
   const rCtx=document.getElementById('raiseChart')?.getContext('2d');
   if(rCtx){
-    new Chart(rCtx,{type:'bar',data:{labels:['Maize—Ogun','Rice—Kebbi'],datasets:[{label:'Raised',data:[28800,29250],backgroundColor:'#00ff87',borderRadius:6},{label:'Target',data:[40000,65000],backgroundColor:'rgba(240,192,64,.2)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{color:'#4a8a5c',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(0,255,135,.06)'}},x:{ticks:{color:'#4a8a5c'},grid:{display:false}}},plugins:{legend:{labels:{color:'#86efac',font:{size:10}}}}}});
+    new Chart(rCtx,{type:'bar',data:{labels:['Maize, Ogun','Rice, Kebbi'],datasets:[{label:'Raised',data:[28800,29250],backgroundColor:'#00ff87',borderRadius:6},{label:'Target',data:[40000,65000],backgroundColor:'rgba(240,192,64,.2)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{ticks:{color:'#4a8a5c',callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(0,255,135,.06)'}},x:{ticks:{color:'#4a8a5c'},grid:{display:false}}},plugins:{legend:{labels:{color:'#86efac',font:{size:10}}}}}});
   }
   const iCtx=document.getElementById('invDistChart')?.getContext('2d');
   if(iCtx){
-    new Chart(iCtx,{type:'doughnut',data:{labels:['Maize—Ogun (18)','Rice—Kebbi (16)'],datasets:[{data:[18,16],backgroundColor:['#00ff87','#f0c040'],borderWidth:0}]},options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#4a8a5c',font:{size:9},padding:8}}}}});
+    new Chart(iCtx,{type:'doughnut',data:{labels:['Maize, Ogun (18)','Rice, Kebbi (16)'],datasets:[{data:[18,16],backgroundColor:['#00ff87','#f0c040'],borderWidth:0}]},options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#4a8a5c',font:{size:9},padding:8}}}}});
   }
 }
 

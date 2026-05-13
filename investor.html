@@ -182,7 +182,7 @@
     <div class="sidebar-label">Account</div>
     <div class="sidebar-wallet" id="sidebarWallet" style="display:none">
       <div class="sw-label">Connected Wallet</div>
-      <div class="sw-addr" id="swAddr">—</div>
+      <div class="sw-addr" id="swAddr">, </div>
       <div class="sw-actions">
         <button class="sw-btn" onclick="copyAddr()">Copy</button>
         <button class="sw-btn red" onclick="disconnectWallet()">Disconnect</button>
@@ -379,10 +379,10 @@
     <div class="modal-body">
       <div style="background:rgba(0,255,135,.05);border:1px solid rgba(0,255,135,.12);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.1rem">
         <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px">Farm</div>
-        <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.92rem" id="iModalFarm">—</div>
+        <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:.92rem" id="iModalFarm">, </div>
         <div style="display:flex;gap:1rem;margin-top:.4rem">
-          <span style="font-size:.72rem;color:var(--muted)">APY: <strong style="color:var(--green)" id="iModalApy">—</strong></span>
-          <span style="font-size:.72rem;color:var(--muted)">Harvest: <strong style="color:var(--text)" id="iModalCycle">—</strong></span>
+          <span style="font-size:.72rem;color:var(--muted)">APY: <strong style="color:var(--green)" id="iModalApy">, </strong></span>
+          <span style="font-size:.72rem;color:var(--muted)">Harvest: <strong style="color:var(--text)" id="iModalCycle">, </strong></span>
         </div>
       </div>
       <div class="banner info" style="font-size:.78rem;margin-bottom:1.1rem">
@@ -457,7 +457,7 @@ function renderDashInvestments(){
     const statusColors={active:'green',['harvest-soon']:'gold'};
     const statusLabels={active:'Active',['harvest-soon']:'Harvest Soon'};
     return`<div class="inv-row">
-      <div><div class="inv-farm-name">${farm?.name||'—'} — ${farm?.state||''}</div><div class="inv-farm-sub">NFT ${inv.nft} · Solana Devnet</div></div>
+      <div><div class="inv-farm-name">${farm?.name||','} , ${farm?.state||''}</div><div class="inv-farm-sub">NFT ${inv.nft} · Solana Devnet</div></div>
       <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700">$${inv.invested.toLocaleString()}</div>
       <div style="color:var(--green);font-weight:700">${inv.apy}%</div>
       <div style="color:var(--green);font-weight:700">$${inv.earned.toLocaleString()}</div>
@@ -482,7 +482,7 @@ function renderNFTs(containerId){
       <div class="nft-mini-cert">
         <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><rect width="52" height="52" fill="#001a08"/><path d="M5,26 Q15,16 26,22 Q37,28 46,18" fill="none" stroke="rgba(0,255,135,.3)" stroke-width="1"/><path d="M5,30 Q15,20 26,26 Q37,32 46,22" fill="none" stroke="rgba(0,255,135,.18)" stroke-width="1"/><polygon points="10,10 32,8 44,16 42,38 28,42 10,40 7,28" fill="rgba(0,255,135,.08)" stroke="rgba(0,255,135,.35)" stroke-width=".8" stroke-dasharray="3,2"/><circle cx="26" cy="26" r="3" fill="#00ff87" opacity=".8"/></svg>
       </div>
-      <div class="nft-mini-info"><div class="nft-mini-name">${farm?.name||'—'} — ${farm?.state||''}</div><div class="nft-mini-meta">NFT ${inv.nft} · ${farm?.size||0} Ha · ${farm?.cycle||''}</div></div>
+      <div class="nft-mini-info"><div class="nft-mini-name">${farm?.name||','} , ${farm?.state||''}</div><div class="nft-mini-meta">NFT ${inv.nft} · ${farm?.size||0} Ha · ${farm?.cycle||''}</div></div>
       <div class="nft-mini-val"><div class="v">$${inv.invested.toLocaleString()}</div><div class="l">invested</div></div>
     </div>`;
   }).join('');
@@ -496,7 +496,7 @@ function renderPortfolioTable(){
     const sc={active:'green',['harvest-soon']:'gold'};
     const sl={active:'Active',['harvest-soon']:'Harvest Soon'};
     return`<div class="inv-row">
-      <div><div class="inv-farm-name">${farm?.name||'—'} — ${farm?.state||''}</div><div class="inv-farm-sub">NFT ${inv.nft}</div></div>
+      <div><div class="inv-farm-name">${farm?.name||','} , ${farm?.state||''}</div><div class="inv-farm-sub">NFT ${inv.nft}</div></div>
       <div style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700">$${inv.invested.toLocaleString()}</div>
       <div style="color:var(--green);font-weight:700">${inv.apy}%</div>
       <div style="color:var(--green);font-weight:700">$${inv.earned.toLocaleString()}</div>
@@ -513,7 +513,7 @@ function renderHistory(){
     const sc={active:'green',['harvest-soon']:'gold'};
     const sl={active:'Active',['harvest-soon']:'Harvest Soon'};
     return`<tr>
-      <td style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700">${farm?.name||'—'} — ${farm?.state||''}</td>
+      <td style="font-family:'Cabinet Grotesk',sans-serif;font-weight:700">${farm?.name||','} , ${farm?.state||''}</td>
       <td class="mono">${h.tx}</td>
       <td class="green">$${h.amount.toLocaleString()}</td>
       <td style="color:var(--green)">${h.apy}%</td>
@@ -567,14 +567,14 @@ function renderAllFarms(){
         <div class="farm-cert-bottom"><span class="farm-coords">${f.coords}</span><span class="farm-ha-badge">${f.size} Ha</span></div>
       </div>
       <div class="farm-card-body">
-        <div class="farm-name">${f.name} — ${f.location}</div>
+        <div class="farm-name">${f.name}, ${f.location}</div>
         <div class="farm-data-grid">
           <div class="farm-data-cell"><div class="farm-data-val ${vc}">${f.roi.min}–${f.roi.max}%</div><div class="farm-data-lbl">Est. ROI</div></div>
           <div class="farm-data-cell"><div class="farm-data-val ${vc}">$${f.target.toLocaleString()}</div><div class="farm-data-lbl">Target</div></div>
           <div class="farm-data-cell"><div class="farm-data-val">${f.cycle}</div><div class="farm-data-lbl">Harvest</div></div>
           <div class="farm-data-cell"><div class="farm-data-val ${f.iot?'g':''}">${f.iot?'Active':'Pending'}</div><div class="farm-data-lbl">IoT</div></div>
         </div>
-        ${f.target>0?`<div class="farm-progress"><div class="farm-progress-fill" style="width:${fp}%"></div></div><div class="farm-progress-meta"><span class="pct">${fp}% Funded</span><span>$${f.raised.toLocaleString()} / $${f.target.toLocaleString()}</span></div>`:`<div class="farm-progress"><div class="farm-progress-fill" style="width:0%"></div></div><div class="farm-progress-meta"><span style="color:var(--muted)">Whitelist Opening</span><span>—</span></div>`}
+        ${f.target>0?`<div class="farm-progress"><div class="farm-progress-fill" style="width:${fp}%"></div></div><div class="farm-progress-meta"><span class="pct">${fp}% Funded</span><span>$${f.raised.toLocaleString()} / $${f.target.toLocaleString()}</span></div>`:`<div class="farm-progress"><div class="farm-progress-fill" style="width:0%"></div></div><div class="farm-progress-meta"><span style="color:var(--muted)">Whitelist Opening</span><span>, </span></div>`}
         <div class="farm-divider"></div>
         <button class="farm-invest-btn" onclick="openInvestModal('${f.id}')" ${!canInvest&&f.status!=='soon'?'disabled':''}>
           ${f.status==='soon'?'Join Whitelist':canInvest?'Invest with SOL':'Connect Wallet to Invest'}
@@ -593,8 +593,8 @@ function openInvestModal(farmId){
   if(!_ws.connected){openWalletModal();return;}
   _iFarm=getFarm(farmId);
   if(!_iFarm)return;
-  document.getElementById('iModalFarm').textContent=_iFarm.name+' — '+_iFrame?.location||'';
-  document.getElementById('iModalFarm').textContent=`${_iFarm.name} — ${_iFarm.location}`;
+  document.getElementById('iModalFarm').textContent=_iFarm.name+', '+_iFrame?.location||'';
+  document.getElementById('iModalFarm').textContent=`${_iFarm.name}, ${_iFarm.location}`;
   document.getElementById('iModalApy').textContent=`${_iFrame?.roi?.min||_iFarm.roi.min}–${_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFarm?.roi?.max||_iFrame?.roi?.max||_iFrame?.roi?.max||_iFarm?.roi?.max}%`;
   document.getElementById('iModalApy').textContent=`${_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFrame?.roi?.min||_iFarm?.roi?.min}–${_iFrame?.roi?.max||_iFarm?.roi?.max}%`;
   document.getElementById('iModalApy').textContent=`${_iFrame?.roi?.min}–${_iFrame?.roi?.max}%`;
@@ -604,7 +604,7 @@ function openInvestModal(farmId){
   updateInvSummary();
   document.getElementById('investModal').classList.add('open');
 }
-// Fix the function above — clean version
+// Fix the function above, clean version
 window.openInvestModal=function(farmId){
   if(!_ws.connected){openWalletModal();return;}
   _iFrame=null;_iFrame=null;
@@ -615,7 +615,7 @@ window.openInvestModal=function(farmId){
   const farm=getFarm(farmId);
   if(!farm)return;
   _iFrame=farm;
-  document.getElementById('iModalFarm').textContent=farm.name+' — '+farm.location;
+  document.getElementById('iModalFarm').textContent=farm.name+', '+farm.location;
   document.getElementById('iModalApy').textContent=farm.roi.min+'–'+farm.roi.max+'%';
   document.getElementById('iModalCycle').textContent=farm.cycle;
   document.getElementById('iAmount').value='';
@@ -654,7 +654,7 @@ function initCharts(){
   }
   const aCtx=document.getElementById('allocChart')?.getContext('2d');
   if(aCtx){
-    new Chart(aCtx,{type:'doughnut',data:{labels:['Maize—Ogun','Rice—Delta','Soybean—Kano'],datasets:[{data:[3000,6000,3500],backgroundColor:['#00ff87','#f0c040','#4ade80'],borderWidth:0}]},options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#4a8a5c',font:{size:9},padding:8}}}}});
+    new Chart(aCtx,{type:'doughnut',data:{labels:['Maize, Ogun','Rice, Delta','Soybean, Kano'],datasets:[{data:[3000,6000,3500],backgroundColor:['#00ff87','#f0c040','#4ade80'],borderWidth:0}]},options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#4a8a5c',font:{size:9},padding:8}}}}});
   }
 }
 function setChartPeriod(p,el){
