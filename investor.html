@@ -119,7 +119,7 @@
 <canvas id="particles"></canvas>
 
 <!-- NAV -->
-<nav class="nav">
+<nav class="nav" style="overflow:hidden">
   <div class="nav-left" style="display:flex;align-items:center;gap:10px">
     <img src="assets/logo.png" alt="AgricFi" class="nav-logo" onerror="this.style.display='none'">
     <span class="nav-brand">AgricFi</span>
@@ -133,7 +133,7 @@
     <a onclick="showPanel('yields')"    class="nav-link" id="nl-yields">Yields</a>
   </div>
   <div class="nav-right">
-    <div class="btn-copy-addr" id="addrChip" style="display:none" onclick="copyAddr()" title="Copy address">
+    <div class="btn-copy-addr" id="addrChip" onclick="copyAddr()" title="Copy address" style="display:none" onclick="copyAddr()" title="Copy address">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
       <span id="addrText"></span>
     </div>

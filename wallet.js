@@ -15,6 +15,14 @@ const APP_URL        = 'https://agricfi.github.io/AgricFi-MVP/';
 const APP_ICON       = 'https://agricfi.github.io/AgricFi-MVP/assets/logo.png';
 const IS_MOBILE      = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+// ── Detect if we're INSIDE a wallet's in-app browser ───────────
+// Wallet in-app browsers inject window.solana automatically
+// We detect this to connect directly without any redirect
+const IN_PHANTOM_BROWSER  = !!(window.phantom?.solana?.isPhantom || window.solana?.isPhantom);
+const IN_SOLFLARE_BROWSER = !!(window.solflare?.isSolflare);
+const IN_BACKPACK_BROWSER = !!(window.backpack?.isBackpack);
+const IN_WALLET_BROWSER   = IN_PHANTOM_BROWSER || IN_SOLFLARE_BROWSER || IN_BACKPACK_BROWSER;
+
 // ── Internal state ─────────────────────────────────────────────
 let _modal   = null;   // Reown AppKit modal instance
 let _ws      = { connected: false, address: null, name: null };
@@ -126,19 +134,54 @@ async function syncFromModal() {
 //  This is the single entry point — handles everything
 // ══════════════════════════════════════════════════════════════
 async function openWalletModal() {
-  showToast('info', 'Loading wallet...', 'Initialising connection...');
+  // ── Case 1: Already inside a wallet's in-app browser
+  // window.solana is injected — connect directly, no modal needed
+  if (IN_WALLET_BROWSER && !_ws.connected) {
+    const provider = IN_PHANTOM_BROWSER
+      ? (window.phantom?.solana || window.solana)
+      : IN_SOLFLARE_BROWSER
+        ? window.solflare
+        : window.backpack;
+    const name = IN_PHANTOM_BROWSER ? 'Phantom'
+      : IN_SOLFLARE_BROWSER ? 'Solflare' : 'Backpack';
+
+    showToast('info', 'Connecting ' + name + '...', 'Approve in your wallet');
+    try {
+      await provider.connect();
+      const address = provider.publicKey?.toString();
+      if (!address) throw new Error('Could not read address');
+      _ws = { connected: true, address, name };
+      saveSession();
+      updateWalletUI();
+      showToast('success', 'Connected!', name + ': ' + fmtAddr(address));
+      if (typeof onWalletConnected === 'function') onWalletConnected(_ws);
+    } catch (err) {
+      if (err.code === 4001 || err.message?.includes('rejected')) {
+        showToast('info', 'Cancelled', 'Connection cancelled');
+      } else {
+        showToast('error', 'Failed', err.message || 'Try again');
+      }
+    }
+    return;
+  }
+
+  // ── Case 2: Regular browser (Chrome/Safari on mobile, or desktop)
+  // Use Reown AppKit — shows modal with wallet options
+  // On mobile, tapping a wallet sends a deeplink that opens the wallet app
+  // The wallet app shows biometric/password screen → user approves → connected
+  showToast('info', 'Loading...', 'Opening wallet selector');
 
   const modal = await initAppKit();
 
   if (modal) {
-    // Use Reown AppKit modal — handles mobile deeplinks automatically
     try {
       await modal.open({ view: 'Connect' });
     } catch (e) {
       console.error('[AgricFi Wallet] open error:', e);
+      openNativeFallbackModal();
     }
   } else {
-    // AppKit failed to load — fall back to native detection
+    // AppKit CDN failed — show native fallback
     openNativeFallbackModal();
   }
 }

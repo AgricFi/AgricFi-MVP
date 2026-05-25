@@ -713,6 +713,36 @@ document.querySelectorAll('.farm-nft-card').forEach(card=>{
 // ── Mode entry (index.html specific) ──────────────────────────
 window._pendingMode = null;
 
+// Mobile nav helpers
+function toggleMobileNav() {
+  const m = document.getElementById('mobileNavMenu');
+  const h = document.getElementById('hamburger');
+  if (!m) return;
+  const open = m.style.display === 'block';
+  m.style.display = open ? 'none' : 'block';
+}
+function closeMobileNav() {
+  const m = document.getElementById('mobileNavMenu');
+  if (m) m.style.display = 'none';
+}
+// Show hamburger on mobile
+(function() {
+  function checkHamburger() {
+    const hb = document.getElementById('hamburger');
+    const nl = document.querySelector('.nav-links');
+    if (!hb) return;
+    if (window.innerWidth <= 768) {
+      hb.style.display = 'flex';
+      if (nl) nl.style.display = 'none';
+    } else {
+      hb.style.display = 'none';
+      if (nl) nl.style.display = 'flex';
+    }
+  }
+  checkHamburger();
+  window.addEventListener('resize', checkHamburger);
+})();
+
 function enterMode(mode) {
   if (!window._ws || !window._ws.connected) {
     window._pendingMode = mode;
@@ -729,6 +759,36 @@ window.onWalletConnected = function(ws) {
     setTimeout(() => {
       const dest = window._pendingMode === 'investor' ? 'investor.html' : 'farmer.html';
       window._pendingMode = null;
+
+// Mobile nav helpers
+function toggleMobileNav() {
+  const m = document.getElementById('mobileNavMenu');
+  const h = document.getElementById('hamburger');
+  if (!m) return;
+  const open = m.style.display === 'block';
+  m.style.display = open ? 'none' : 'block';
+}
+function closeMobileNav() {
+  const m = document.getElementById('mobileNavMenu');
+  if (m) m.style.display = 'none';
+}
+// Show hamburger on mobile
+(function() {
+  function checkHamburger() {
+    const hb = document.getElementById('hamburger');
+    const nl = document.querySelector('.nav-links');
+    if (!hb) return;
+    if (window.innerWidth <= 768) {
+      hb.style.display = 'flex';
+      if (nl) nl.style.display = 'none';
+    } else {
+      hb.style.display = 'none';
+      if (nl) nl.style.display = 'flex';
+    }
+  }
+  checkHamburger();
+  window.addEventListener('resize', checkHamburger);
+})();
       window.location.href = dest;
     }, 700);
   }
