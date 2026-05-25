@@ -416,11 +416,9 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script src="data.js"></script>
+<script type="module" src="wallet.js"></script>
 <script>
 // ── WALLET STATE (persisted)
-const WALLET_KEY='agricfi_wallet_v1';
-let _ws={connected:false,address:null,name:null,provider:null};
-
 // ── PANEL NAVIGATION
 const PANELS=['dashboard','farms','portfolio','history','yields'];
 function showPanel(id){
@@ -667,114 +665,37 @@ function toggleSidebar(){
   document.getElementById('sidebar')?.classList.toggle('mobile-open');
 }
 
-// ── WALLET SYSTEM
-function detectWallets(){
-  const w=[];
-  if(window.solana?.isPhantom)    w.push({id:'phantom', name:'Phantom', p:window.solana});
-  if(window.solflare?.isSolflare) w.push({id:'solflare',name:'Solflare',p:window.solflare});
-  if(window.backpack)             w.push({id:'backpack', name:'Backpack',p:window.backpack});
-  return w;
-}
-function buildWalletOpts(){
-  const inst=detectWallets().map(w=>w.id);
-  const ALL=[{id:'phantom',name:'Phantom',desc:'Most popular Solana wallet'},{id:'solflare',name:'Solflare',desc:'Secure multi-asset wallet'},{id:'backpack',name:'Backpack',desc:'Multi-chain wallet'}];
-  const icons={phantom:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#ab9ff2"/><path d="M32 20.5c0 6.627-5.373 12-12 12s-12-5.373-12-12 5.373-12 12-12 12 5.373 12 12zm-7-.5c0-2.761-2.239-5-5-5s-5 2.239-5 5 2.239 5 5 5 5-2.239 5-5z" fill="white"/></svg>`,solflare:`<svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#FC8800"/><path d="M20 8l10 12-10 12-10-12z" fill="white" opacity=".9"/></svg>`,backpack:`<svg width="28" height="28" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#E33E3F"/><path d="M12 16h16v16H12z M16 16V12a4 4 0 018 0v4" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`};
-  return ALL.map(w=>`<div class="wallet-opt" onclick="connectWallet('${w.id}')"><div class="w-icon">${icons[w.id]||''}</div><div><div class="w-name">${w.name}</div><div class="w-desc">${w.desc}</div></div>${inst.includes(w.id)?'<span class="w-detected">Detected</span>':'<svg class="w-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'}</div>`).join('');
-}
-function openWalletModal(){document.getElementById('walletOpts').innerHTML=buildWalletOpts();document.getElementById('walletModal').classList.add('open');}
-function closeWalletModal(){document.getElementById('walletModal').classList.remove('open');}
-async function connectWallet(id){
-  closeWalletModal();
-  const all=detectWallets();const w=all.find(x=>x.id===id);
-  if(!w){const urls={phantom:'https://phantom.app/',solflare:'https://solflare.com/',backpack:'https://backpack.app/'};if(urls[id])window.open(urls[id],'_blank');showToast('info','Not Installed','Install '+id+' then retry');return;}
-  showToast('info','Connecting...','Opening '+w.name);
-  try{
-    const r=await w.p.connect();const addr=r.publicKey.toString();
-    _ws={connected:true,address:addr,name:w.name,provider:w.p};
-    localStorage.setItem(WALLET_KEY,JSON.stringify({address:addr,name:w.name,walletId:id}));
-    updateWalletUI();showToast('success','Connected!',w.name+': '+fmt(addr));
-    onConnected();
-    watchWallet();
-  }catch(e){if(e.code===4001)showToast('info','Cancelled','Connection cancelled');else showToast('error','Failed',e.message||'Try again');}
-}
-async function disconnectWallet(){
-  try{if(_ws.provider?.disconnect)await _ws.provider.disconnect();}catch(e){}
-  _ws={connected:false,address:null,name:null,provider:null};
-  localStorage.removeItem(WALLET_KEY);
-  updateWalletUI();
-  onDisconnected();
-  showToast('info','Disconnected','Wallet disconnected');
-}
-async function restoreWallet(){
-  const s=localStorage.getItem(WALLET_KEY);if(!s)return;
-  try{const{address,name,walletId}=JSON.parse(s);const all=detectWallets();const w=all.find(x=>x.id===walletId);if(!w)return;
-    if(w.p.isConnected&&w.p.publicKey){_ws={connected:true,address:w.p.publicKey.toString(),name,provider:w.p};updateWalletUI();onConnected();watchWallet();return;}
-    try{const r=await w.p.connect({onlyIfTrusted:true});_ws={connected:true,address:r.publicKey.toString(),name,provider:w.p};updateWalletUI();onConnected();watchWallet();}catch(e){}
-  }catch(e){localStorage.removeItem(WALLET_KEY);}
-}
-function watchWallet(){
-  if(!_ws.provider)return;
-  _ws.provider.on?.('disconnect',()=>{_ws={connected:false,address:null,name:null,provider:null};localStorage.removeItem(WALLET_KEY);updateWalletUI();onDisconnected();showToast('info','Disconnected','Wallet session ended');});
-  _ws.provider.on?.('accountChanged',pk=>{if(pk){_ws.address=pk.toString();updateWalletUI();}else disconnectWallet();});
-}
-function updateWalletUI(){
-  const btn=document.getElementById('btnWallet');
-  const chip=document.getElementById('addrChip');
-  const swAddr=document.getElementById('swAddr');
-  const swWallet=document.getElementById('sidebarWallet');
-  const swConnBtn=document.getElementById('sidebarConnectBtn');
-  if(!btn)return;
-  if(_ws.connected){
-    btn.className='btn-wallet connected';
-    btn.innerHTML=`<span class="w-dot"></span>${fmt(_ws.address)}`;
-    btn.onclick=disconnectWallet;btn.title='Click to disconnect';
-    if(chip){chip.style.display='flex';document.getElementById('addrText').textContent=fmt(_ws.address);}
-    if(swAddr)swAddr.textContent=_ws.address;
-    if(swWallet)swWallet.style.display='block';
-    if(swConnBtn)swConnBtn.style.display='none';
-    document.getElementById('dashWelcomeName').textContent=fmt(_ws.address);
-  }else{
-    btn.className='btn-wallet';
-    btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg> Connect Wallet`;
-    btn.onclick=openWalletModal;
-    if(chip)chip.style.display='none';
-    if(swWallet)swWallet.style.display='none';
-    if(swConnBtn)swConnBtn.style.display='flex';
-  }
-}
-async function copyAddr(){
-  if(!_ws.address)return;
-  try{await navigator.clipboard.writeText(_ws.address);showToast('success','Copied!','Wallet address copied');}
-  catch(e){showToast('error','Failed','Could not copy');}
-}
+// ── WALLET — handled by wallet.js (loaded as module)
+// Callbacks for investor portal
 function onConnected(){
-  const g=document.getElementById('gate-dashboard');const c=document.getElementById('dash-content');
-  if(g)g.style.display='none';if(c)c.style.display='block';
-  const gp=document.getElementById('gate-portfolio');const cp=document.getElementById('port-content');
-  if(gp)gp.style.display='none';if(cp)cp.style.display='block';
+  if(typeof updateWalletUI==='function') updateWalletUI();
+  const g=document.getElementById('gate-dashboard');
+  const c=document.getElementById('dash-content');
+  if(g)g.style.display='none';
+  if(c)c.style.display='block';
+  const gp=document.getElementById('gate-portfolio');
+  const cp=document.getElementById('port-content');
+  if(gp)gp.style.display='none';
+  if(cp)cp.style.display='block';
+  const wn=document.getElementById('dashWelcomeName');
+  if(wn&&window._ws)wn.textContent=window._ws.address?window._ws.address.slice(0,4)+'...'+window._ws.address.slice(-4):'Investor';
   renderDashInvestments();renderActivity();renderNFTs('nftList');
   renderPortfolioTable();renderNFTs('portfolioNfts');
   renderHistory();renderYields();renderAllFarms();
-  initCharts();
-  initCounters();
+  initCharts();initCounters();
 }
 function onDisconnected(){
-  const g=document.getElementById('gate-dashboard');const c=document.getElementById('dash-content');
-  if(g)g.style.display='flex';if(c)c.style.display='none';
-  const gp=document.getElementById('gate-portfolio');const cp=document.getElementById('port-content');
-  if(gp)gp.style.display='flex';if(cp)cp.style.display='none';
+  const g=document.getElementById('gate-dashboard');
+  const c=document.getElementById('dash-content');
+  if(g)g.style.display='flex';
+  if(c)c.style.display='none';
+  const gp=document.getElementById('gate-portfolio');
+  const cp=document.getElementById('port-content');
+  if(gp)gp.style.display='flex';
+  if(cp)cp.style.display='none';
 }
-function fmt(a){if(!a)return'';return a.slice(0,4)+'...'+a.slice(-4);}
-
-// ── TOAST
-function showToast(type,title,msg,dur=4000){
-  const c=document.getElementById('toastContainer');
-  const icons={success:'✓',error:'✕',info:'i'};
-  const el=document.createElement('div');el.className=`toast ${type}`;
-  el.innerHTML=`<span class="toast-icon">${icons[type]||'i'}</span><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
-  c.appendChild(el);requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
-  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},dur);
-}
+window.onWalletConnected  = function(ws){ window._ws=ws; onConnected(); };
+window.onWalletDisconnected = function(){ window._ws=null; onDisconnected(); };
 
 // ── PARTICLES
 function initParticles(){
