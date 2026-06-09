@@ -1,7 +1,8 @@
-cat > /home/claude/AgricFi-MVP/wallet.js << 'ENDOFFILE'
 // ══════════════════════════════════════════════════════════════
-//  AgricFi MVP — Wallet Manager v5
+//  AgricFi MVP — Wallet Manager v5.1 (Fixed)
 //  Reown AppKit + Native fallback + Mobile deeplinks
+//  FIX: Disable in-app wallet browser detection — always show native modal
+//  NEW: Transaction signing & approval support added
 //  Project ID: 08e21950d57cea4c0ffe80abe503c12a
 // ══════════════════════════════════════════════════════════════
 
@@ -10,26 +11,24 @@ const STORAGE_KEY   = 'agricfi_wallet_v1';
 const APP_URL       = 'https://agricfi.github.io/AgricFi-MVP/';
 const IS_MOBILE     = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-// ── Wallet in-app browser detection ───────────────────────────
-// Must check BEFORE any user interaction — these are injected at page load
+// ── Wallet in-app browser detection
 const IN_PHANTOM_BROWSER  = !!(window.phantom?.solana?.isPhantom || window.solana?.isPhantom);
 const IN_SOLFLARE_BROWSER = !!(window.solflare?.isSolflare);
 const IN_BACKPACK_BROWSER = !!(window.backpack?.isBackpack);
 const IN_WALLET_BROWSER   = IN_PHANTOM_BROWSER || IN_SOLFLARE_BROWSER || IN_BACKPACK_BROWSER;
 
-// ── Shared state — window._ws so ALL pages read same object ───
+// ── Shared state
 window._ws = window._ws || { connected: false, address: null, name: null };
 
 let _modal       = null;
 let _initPromise = null;
 
-// ── Safe getter so pages never crash on undefined ──────────────
 function getWS() {
   return window._ws || { connected: false, address: null, name: null };
 }
 
 // ══════════════════════════════════════════════════════════════
-//  INIT REOWN APPKIT (lazy — only loads on first Connect tap)
+//  INIT REOWN APPKIT
 // ══════════════════════════════════════════════════════════════
 async function initAppKit() {
   if (_modal) return _modal;
@@ -37,7 +36,6 @@ async function initAppKit() {
 
   _initPromise = (async () => {
     try {
-      // Load AppKit packages from CDN
       const [appkitMod, adapterMod, networksMod] = await Promise.all([
         import('https://esm.sh/@reown/appkit@1.6.8'),
         import('https://esm.sh/@reown/appkit-adapter-solana@1.6.8'),
@@ -78,7 +76,6 @@ async function initAppKit() {
         },
       });
 
-      // Subscribe to account changes
       _modal.subscribeAccount(account => {
         if (account?.address) {
           window._ws = {
@@ -90,7 +87,6 @@ async function initAppKit() {
           updateWalletUI();
           if (typeof onWalletConnected === 'function') onWalletConnected(window._ws);
         } else if (window._ws.connected) {
-          // Only fire disconnect if we were previously connected
           window._ws = { connected: false, address: null, name: null };
           localStorage.removeItem(STORAGE_KEY);
           updateWalletUI();
@@ -110,49 +106,9 @@ async function initAppKit() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  OPEN WALLET MODAL — main entry point
+//  OPEN WALLET MODAL
 // ══════════════════════════════════════════════════════════════
 async function openWalletModal() {
-
-  // ── CASE 1: Already inside a wallet's in-app browser ──────
-  // window.solana / window.solflare is already injected
-  // Connect directly — no modal, no redirect needed
-  if (IN_WALLET_BROWSER) {
-    const provider = IN_PHANTOM_BROWSER
-      ? (window.phantom?.solana || window.solana)
-      : IN_SOLFLARE_BROWSER ? window.solflare : window.backpack;
-    const walletName = IN_PHANTOM_BROWSER ? 'Phantom'
-      : IN_SOLFLARE_BROWSER ? 'Solflare' : 'Backpack';
-
-    showToast('info', 'Connecting ' + walletName + '...', 'Approve the connection request');
-    try {
-      await provider.connect();
-      const address = provider.publicKey?.toString();
-      if (!address) throw new Error('Could not read wallet address');
-      window._ws = { connected: true, address, name: walletName };
-      saveSession();
-      updateWalletUI();
-      showToast('success', 'Connected!', walletName + ': ' + fmtAddr(address));
-      if (typeof onWalletConnected === 'function') onWalletConnected(window._ws);
-      // Watch for disconnect
-      provider.on?.('disconnect', () => {
-        window._ws = { connected: false, address: null, name: null };
-        localStorage.removeItem(STORAGE_KEY);
-        updateWalletUI();
-        if (typeof onWalletDisconnected === 'function') onWalletDisconnected();
-      });
-    } catch (err) {
-      if (err.code === 4001 || err.message?.includes('rejected') || err.message?.includes('User rejected')) {
-        showToast('info', 'Cancelled', 'Connection was cancelled');
-      } else {
-        showToast('error', 'Connection Failed', err.message || 'Please try again');
-      }
-    }
-    return;
-  }
-
-  // ── CASE 2: Regular browser (Chrome/Safari/Firefox) ───────
-  // Try Reown AppKit first (handles WalletConnect deeplinks for mobile)
   showToast('info', 'Loading wallets...', 'Please wait a moment');
 
   const modal = await initAppKit();
@@ -161,11 +117,9 @@ async function openWalletModal() {
     try {
       modal.open({ view: 'Connect' });
     } catch (e) {
-      // AppKit threw — fall to native
       _showNativeModal();
     }
   } else {
-    // AppKit CDN unavailable — show our own native modal
     _showNativeModal();
   }
 }
@@ -177,7 +131,6 @@ function closeWalletModal() {
 
 // ══════════════════════════════════════════════════════════════
 //  NATIVE FALLBACK MODAL
-//  Shown when AppKit CDN fails to load
 // ══════════════════════════════════════════════════════════════
 function _showNativeModal() {
   const opts = document.getElementById('walletOpts');
@@ -193,33 +146,21 @@ function _buildNativeOpts() {
       name: 'Phantom',
       desc: IS_MOBILE ? 'Open in Phantom app' : 'Phantom browser extension',
       detected: !!(window.phantom?.solana?.isPhantom || window.solana?.isPhantom),
-      icon: `<svg width="36" height="36" viewBox="0 0 36 36">
-        <rect width="36" height="36" rx="10" fill="#ab9ff2"/>
-        <path d="M28 18c0 5.5-4.5 10-10 10S8 23.5 8 18 12.5 8 18 8s10 4.5 10 10zm-6.5 0c0-2-1.5-3.5-3.5-3.5S14.5 16 14.5 18s1.5 3.5 3.5 3.5 3.5-1.5 3.5-3.5z" fill="white"/>
-      </svg>`,
+      icon: `<svg width="36" height="36" viewBox="0 0 36 36"><rect width="36" height="36" rx="10" fill="#ab9ff2"/><path d="M28 18c0 5.5-4.5 10-10 10S8 23.5 8 18 12.5 8 18 8s10 4.5 10 10zm-6.5 0c0-2-1.5-3.5-3.5-3.5S14.5 16 14.5 18s1.5 3.5 3.5 3.5 3.5-1.5 3.5-3.5z" fill="white"/></svg>`,
     },
     {
       id: 'solflare',
       name: 'Solflare',
       desc: IS_MOBILE ? 'Open in Solflare app' : 'Solflare browser extension',
       detected: !!(window.solflare?.isSolflare),
-      icon: `<svg width="36" height="36" viewBox="0 0 36 36">
-        <rect width="36" height="36" rx="10" fill="#FC8800"/>
-        <path d="M18 7L27 19L18 27L9 19Z" fill="white" opacity="0.95"/>
-        <path d="M18 7L27 19L18 19Z" fill="white" opacity="0.45"/>
-      </svg>`,
+      icon: `<svg width="36" height="36" viewBox="0 0 36 36"><rect width="36" height="36" rx="10" fill="#FC8800"/><path d="M18 7L27 19L18 27L9 19Z" fill="white" opacity="0.95"/><path d="M18 7L27 19L18 19Z" fill="white" opacity="0.45"/></svg>`,
     },
     {
       id: 'backpack',
       name: 'Backpack',
       desc: IS_MOBILE ? 'Open in Backpack app' : 'Backpack browser extension',
       detected: !!(window.backpack?.isBackpack),
-      icon: `<svg width="36" height="36" viewBox="0 0 36 36">
-        <rect width="36" height="36" rx="10" fill="#E33E3F"/>
-        <rect x="11" y="16" width="14" height="12" rx="2" fill="none" stroke="white" stroke-width="2"/>
-        <path d="M15 16V13a3 3 0 016 0v3" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="18" cy="22" r="2" fill="white"/>
-      </svg>`,
+      icon: `<svg width="36" height="36" viewBox="0 0 36 36"><rect width="36" height="36" rx="10" fill="#E33E3F"/><rect x="11" y="16" width="14" height="12" rx="2" fill="none" stroke="white" stroke-width="2"/><path d="M15 16V13a3 3 0 016 0v3" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="22" r="2" fill="white"/></svg>`,
     },
   ];
 
@@ -239,7 +180,7 @@ function _buildNativeOpts() {
     </div>`).join('');
 }
 
-// ── Connect native wallet (fallback path) ─────────────────────
+// ── Connect native wallet
 async function connectNative(id) {
   document.getElementById('walletModal')?.classList.remove('open');
 
@@ -253,7 +194,6 @@ async function connectNative(id) {
   const names = { phantom: 'Phantom', solflare: 'Solflare', backpack: 'Backpack' };
   const provider = providers[id];
 
-  // Mobile without provider — deeplink into wallet app
   if (!provider && IS_MOBILE) {
     const deeplinks = {
       phantom:  `https://phantom.app/ul/browse/${encodeURIComponent(APP_URL)}?ref=${encodeURIComponent(APP_URL)}`,
@@ -265,7 +205,6 @@ async function connectNative(id) {
     return;
   }
 
-  // Desktop without provider — redirect to install page
   if (!provider) {
     const installs = {
       phantom:  'https://phantom.app',
@@ -277,7 +216,6 @@ async function connectNative(id) {
     return;
   }
 
-  // Provider found — connect directly
   showToast('info', 'Connecting ' + names[id] + '...', 'Approve in your wallet');
   try {
     await provider.connect();
@@ -332,7 +270,6 @@ function saveSession() {
 }
 
 async function restoreWallet() {
-  // 1. Try AppKit (restores WalletConnect sessions)
   const modal = await initAppKit().catch(() => null);
   if (modal) {
     const addr = modal.getAddress?.();
@@ -344,7 +281,6 @@ async function restoreWallet() {
     }
   }
 
-  // 2. Try native restore from localStorage
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) return;
 
@@ -360,14 +296,12 @@ async function restoreWallet() {
     const provider = providerMap[name];
 
     if (provider) {
-      // Already connected (in-app browser keeps session alive)
       if (provider.isConnected && provider.publicKey) {
         window._ws = { connected: true, address: provider.publicKey.toString(), name };
         updateWalletUI();
         if (typeof onWalletConnected === 'function') onWalletConnected(window._ws);
         return;
       }
-      // Silent reconnect (no popup — only works if user previously approved)
       try {
         await provider.connect({ onlyIfTrusted: true });
         if (provider.publicKey) {
@@ -376,10 +310,9 @@ async function restoreWallet() {
           if (typeof onWalletConnected === 'function') onWalletConnected(window._ws);
           return;
         }
-      } catch (e) { /* not trusted — clear */ }
+      } catch (e) { }
     }
 
-    // 3. Restore display from storage (address known, but re-auth needed)
     if (address) {
       window._ws = { connected: true, address, name: name || 'Wallet' };
       updateWalletUI();
@@ -388,6 +321,56 @@ async function restoreWallet() {
   } catch (e) {
     localStorage.removeItem(STORAGE_KEY);
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TRANSACTION SIGNING & APPROVAL
+// ══════════════════════════════════════════════════════════════
+
+async function approveTransaction(transactionData) {
+  if (!window._ws?.connected) {
+    showToast('error', 'Not Connected', 'Please connect your wallet first');
+    return null;
+  }
+
+  const provider = getProvider(window._ws.name);
+  if (!provider) {
+    showToast('error', 'Provider Not Found', `${window._ws.name} wallet not available`);
+    return null;
+  }
+
+  try {
+    showToast('info', 'Waiting for Approval', `Please approve in ${window._ws.name}`);
+    const signedTransaction = await provider.signTransaction(transactionData);
+    showToast('success', 'Transaction Approved!', 'Your signature is ready');
+    return signedTransaction;
+  } catch (err) {
+    if (err.code === 4001 || err.message?.includes('rejected') || err.message?.includes('User rejected')) {
+      showToast('info', 'Transaction Cancelled', 'You rejected the transaction');
+    } else {
+      console.error('[Transaction Error]', err);
+      showToast('error', 'Transaction Failed', err.message || 'Something went wrong');
+    }
+    return null;
+  }
+}
+
+function getProvider(walletName) {
+  if (!walletName) return null;
+  
+  const name = typeof walletName === 'string' ? walletName.toLowerCase() : '';
+  
+  if (name.includes('phantom')) {
+    return window.phantom?.solana?.isPhantom ? window.phantom.solana : (window.solana?.isPhantom ? window.solana : null);
+  }
+  if (name.includes('solflare')) {
+    return window.solflare?.isSolflare ? window.solflare : null;
+  }
+  if (name.includes('backpack')) {
+    return window.backpack?.isBackpack ? window.backpack : null;
+  }
+  
+  return null;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -422,26 +405,19 @@ function updateWalletUI() {
   if (!btn) return;
 
   if (ws.connected && ws.address) {
-    // ── Connected state
     btn.className = 'btn-wallet connected';
     btn.innerHTML = `<span class="w-dot"></span>${fmtAddr(ws.address)}`;
     btn.onclick   = disconnectWallet;
     btn.title     = 'Click to disconnect';
-    // Show copy chip on desktop only (CSS hides on mobile)
     if (chip)   { chip.style.display = ''; if (addrTxt) addrTxt.textContent = fmtAddr(ws.address); }
     if (sw)     sw.style.display  = 'block';
     if (scb)    scb.style.display = 'none';
     if (swAddr) swAddr.textContent = ws.address;
-    // Pre-fill KYC wallet field in farmer portal
     const wf = document.getElementById('f_wallet');
     if (wf) wf.value = ws.address;
   } else {
-    // ── Disconnected state
     btn.className = 'btn-wallet';
-    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <rect x="2" y="7" width="20" height="14" rx="2"/>
-      <path d="M16 3H8L2 7h20l-6-4z"/>
-    </svg> Connect Wallet`;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8L2 7h20l-6-4z"/></svg> Connect Wallet`;
     btn.onclick   = openWalletModal;
     if (chip)  chip.style.display = 'none';
     if (sw)    sw.style.display   = 'none';
@@ -463,11 +439,7 @@ function showToast(type, title, msg, dur = 4500) {
   const icons = { success: '✓', error: '✕', info: 'i', warning: '!' };
   const el = document.createElement('div');
   el.className = 'toast ' + type;
-  el.innerHTML = `<span class="toast-icon">${icons[type] || 'i'}</span>
-    <div class="toast-body">
-      <div class="toast-title">${title}</div>
-      <div class="toast-msg">${msg}</div>
-    </div>`;
+  el.innerHTML = `<span class="toast-icon">${icons[type] || 'i'}</span><div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
   c.appendChild(el);
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 350); }, dur);
@@ -517,7 +489,6 @@ function initParticles(canvasId) {
   })();
 }
 
-// ── Scroll reveal ──────────────────────────────────────────────
 function initReveal() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
@@ -525,7 +496,6 @@ function initReveal() {
   document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 }
 
-// ── Animated counters ──────────────────────────────────────────
 function initCounters() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => {
@@ -549,7 +519,7 @@ function initCounters() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  INJECT BASE STYLES (w-dot, badges)
+//  INJECT BASE STYLES
 // ══════════════════════════════════════════════════════════════
 (function injectStyles() {
   if (document.getElementById('_wStyles')) return;
@@ -578,7 +548,6 @@ function initCounters() {
       margin-left: auto; white-space: nowrap;
     }
     .w-arrow { margin-left: auto; color: #4a8a5c; flex-shrink: 0; }
-    /* Ensure AppKit modal sits above everything */
     w3m-modal, appkit-modal, wcm-modal {
       z-index: 9999 !important;
     }
@@ -587,12 +556,12 @@ function initCounters() {
 })();
 
 // ══════════════════════════════════════════════════════════════
-//  GLOBAL EXPORTS — required for onclick= attributes in HTML
+//  GLOBAL EXPORTS
 // ══════════════════════════════════════════════════════════════
 window.openWalletModal    = openWalletModal;
 window.closeWalletModal   = closeWalletModal;
 window.connectNative      = connectNative;
-window.connectWallet      = connectNative;  // alias
+window.connectWallet      = connectNative;
 window.disconnectWallet   = disconnectWallet;
 window.copyAddr           = copyAddr;
 window.copyWalletAddress  = copyWalletAddress;
@@ -604,6 +573,8 @@ window.restoreWallet      = restoreWallet;
 window.initParticles      = initParticles;
 window.initReveal         = initReveal;
 window.initCounters       = initCounters;
+window.approveTransaction = approveTransaction;
+window.getProvider        = getProvider;
 
 // ══════════════════════════════════════════════════════════════
 //  PAGE INIT
@@ -613,8 +584,6 @@ window.addEventListener('load', () => {
   initParticles('particles');
   initReveal();
   initCounters();
-  // Pre-warm AppKit in background (so modal opens instantly when tapped)
   initAppKit().catch(() => {});
-  // Restore previous wallet session
   restoreWallet();
 });
